@@ -36,17 +36,15 @@ class GoldenGate(CloningReaction):
         # --- Assemble Graph --- #
 
         directed_graph = networkx.DiGraph()
-        flip_cut = {'▼': '▲', '▲': '▼'}
 
         # Add nodes and edges for each part in digest_pool
         for part in self.digest_pool:
 
             # Find indicies of sticky ends, continue if both ends to not have sticky ends
-            cut_matches = [match for match in re.finditer('[▼▲]', part.sequence)]
-            if len(cut_matches) != 2:
-                continue
+            # We will handle this later, this step will mess things up for linear assemblies
 
-            sticky_match_l, sticky_match_r = tuple(cut_matches)
+            sticky_match_l = part.overhang_5
+            sticky_match_r = part.overhang_3
 
             # Process sticky ends into nodes
 
@@ -54,11 +52,19 @@ class GoldenGate(CloningReaction):
             # I can check {is TATG▲ from Part(TATG▲NNNNNN) in node ▼TATG▲}
             # This way edge are only formed between complementary overhangs
 
-            sticky_end_l = part.sequence[:sticky_match_l.start()]
-            l_node = flip_cut[sticky_match_l.group()] + sticky_end_l + sticky_match_l.group()
+            # (5, TATG) as nodes, where 5 is the overhang strand
+            # complementary sticky ends are always formed by the same strand
+            # 5'/3' end of DNA is encoded by direction of edges
 
-            sticky_end_r = part.sequence[sticky_match_r.end():]
-            r_node = sticky_match_r.group() + sticky_end_r + flip_cut[sticky_match_r.group()]
+            if sticky_match_l is None:
+                l_node = 'Blunt_Left'
+            else:
+                l_node = (part.sequence[:sticky_match_l[0]], sticky_match_l[1])
+
+            if sticky_match_r is None:
+                r_node = 'Blunt_Right'
+            else:
+                r_node = (part.sequence[-sticky_match_r[0]:], sticky_match_r[1])  # (overhang_sequence, overhang_strand)
 
             directed_graph.add_node(l_node)
             directed_graph.add_node(r_node)
@@ -84,18 +90,18 @@ class GoldenGate(CloningReaction):
                 source_list = list()
                 assembled_sequence = ''
 
-                # Iterate through edges and get sequence between ▼/▲ + 3' sticky end
+                # Iterate through edges and get sequence up to 3' sticky end
                 for node_l, node_r in pairwise(cycle):
                     current_part = directed_graph[node_l][node_r]['part']
-                    part_components = re.split('[▼▲]', current_part.sequence)
-                    assembled_sequence = assembled_sequence + part_components[1] + part_components[2]
+                    right_sticky_end = 0 if current_part.overhang_3 is None else current_part.overhang_3[0]
+                    assembled_sequence = assembled_sequence + current_part.sequence[:-right_sticky_end]
                     feature_list = feature_list + current_part.features
                     source_list.append(current_part.source)
 
                 # Get last part of cycle
                 last_part = directed_graph[cycle[-1]][cycle[0]]['part']
-                part_components = re.split('[▼▲]', last_part.sequence)
-                assembled_sequence = assembled_sequence + part_components[1] + part_components[2]
+                right_sticky_end = 0 if last_part.overhang_3 is None else last_part.overhang_3[0]
+                assembled_sequence = assembled_sequence + last_part.sequence[:-right_sticky_end]
                 feature_list = feature_list + last_part.features
                 source_list.append(last_part.source)
 

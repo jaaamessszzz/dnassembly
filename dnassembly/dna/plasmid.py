@@ -34,19 +34,17 @@ class Plasmid(DNA):
         # --- Deque so cut first blunt/sticky end is at end of linear sequence --- #
 
         sequence_intermediate = self.sequence
-        offset = max(cut_index_5, cut_index_3) - len(sequence_intermediate)
+        offset = max(cut_index_5, cut_index_3)
         sequence_intermediate = sequence_intermediate[offset:] + sequence_intermediate[:offset]
 
         # If sticky end exists, add repeat sticky end to beginning and figure out which strand forms the overhang
         sticky_end_size = abs(cut_index_5 - cut_index_3)
         sequence_intermediate = sequence_intermediate[-sticky_end_size:] + sequence_intermediate
 
-        if cut_index_5 > cut_index_3:
-            overhang_strand = 5
-        elif cut_index_5 < cut_index_3:
-            overhang_strand = 3
-        else:
+        if cut_index_5 == cut_index_3:
             overhang_strand = None
+        else:
+            overhang_strand = 5 if cut_index_5 < cut_index_3 else 3
 
         input_dna = Part.define_overhangs(sequence_intermediate,
                                           l_overhang_strand=overhang_strand,
@@ -59,13 +57,6 @@ class Plasmid(DNA):
                                           source=self.id)
 
         return input_dna
-
-    def digest_plasmid(self, rxn_enzyme_list):
-        """
-        Digests plasmid into parts
-        :return:
-        """
-
 
     def map_features(self):
         """

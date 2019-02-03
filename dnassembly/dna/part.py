@@ -10,71 +10,56 @@ class Part(DNA):
     to form an assembly and are linear by definition.
     """
 
-    def __init__(self, sequence, id=None, name=None, features=None, description=None, source=None):
+    def __init__(self, sequence, id=None, name=None, features=None, description=None, source=None, overhang_5=None,
+                 overhang_3=None):
         """
-        :param name: name of this Part
         :param sequence: string representation of dsDNA 5' -> 3'
-        :param overhang_5: tuple of (overhang length, )
+        :param id: string, systematic identification of this Part
+        :param name: string, user-defined name of this Part
+        :param features: list of Feature objects
+        :param description: string, describe your part
+        :param source: string, ID of part source or None
+        :param overhang_5: tuple, (overhang length, { 3 | 5 | None }) for 5' end of DNA
+        :param overhang_3: tuple, (overhang length, { 3 | 5 | None }) for 3' end of DNA
         """
         super().__init__(sequence, id=id, name=name, features=features, description=description, source=source)
-        self.overhang_5 = None  # (4, True)
-        self.overhang_3 = None
+        self.overhang_5 = overhang_5
+        self.overhang_3 = overhang_3
+
+    def __repr__(self):
+        return f'DNA:\t{self.id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
+               f'{self.sequence[:25]} ... {self.sequence[-25:]}\n'
 
     @property
-    def sequence(self):
-        return self._sequence
+    def overhang_5(self):
+        return self._overhang_5
 
-    @sequence.setter
-    def sequence(self, input_sequence):
-        """
-        Validate input DNA sequence. Part sequences allow special characters to denote breaks in the top strand
-        ▼ (\u25BC) and bottom strand ▲ (\u25B2) of dsDNA to create sticky ends. These symbols are typically seen in
-        diagrams outlining restriction sites.
+    @overhang_5.setter
+    def overhang_5(self, overhang_5):
+        if not (type(overhang_5) is tuple or overhang_5 is None):
+            print(overhang_5)
+            raise PartDefinitionException('overhang_5 needs to be a tuple or None!')
+        overhang_5_length, overhang_5_strand = overhang_5
+        if (overhang_5_length < 0 or overhang_5_length > len(self.sequence)):
+            raise PartDefinitionException('overhang_5 length has to be between 0 and the length of your part!')
+        if overhang_5_strand not in [3,5,None]:
+            raise PartDefinitionException('overhang_5 strand has to be 3, 5, or None!')
+        self._overhang_5 = overhang_5
 
-        For example, a typical part in the MoClo system digested with the type II restriction enzyme BsaI:
+    @property
+    def overhang_3(self):
+        return self._overhang_3
 
-        5′ - agtcGGTCTCaTATGggttctNNN...NNNgagaggATCCtGAGACCagac - 3'
-             ||||||||||||||||||||||||   |||||||||||||||||||||||
-        3′ - tcagCCAGAGtATACccaagcNNN...NNNctctccTAGGaCTCTGGtctg - 5'
-
-        Produces the following product when digested:
-
-        5′ -            TATGggttctNNN...NNNgagagg                - 3'
-                            |||||||||   ||||||||
-        3′ -                ccaagcNNN...NNNctctccTAGG            - 5'
-
-        This collapses into the string representation:
-
-        5′ -           TATG▲ggttctNNN...NNNgagagg▼TAGG           - 3'
-
-        The ▼/▲ symbols make sense if you think of them as denoting which strand of the linear dsDNA gets cut:
-
-        ▼ cuts the (+)-strand / coding strand.
-        ▲ cuts the (-)-strand / non-coding strand.
-
-        These symbols will make golden gate part assembly super simple with a little regex and string manipulation.
-
-        :param input_sequence: string representation of input DNA sequence
-        :return:
-        """
-
-        split_sequence = re.split('[\u25B2\u25BC]', input_sequence)
-
-        # No sticky ends
-        if len(split_sequence) == 1:
-            self._sequence = input_sequence.upper()
-
-        # Throw exception if more than two nicks are encountered...
-        elif len(split_sequence) > 3:
-            raise SequenceException('A part can only have two sticky ends.')
-
-        # Make sure sequence is only ATCG between nick markers
-        else:
-            clean_sequence_parts = [a for a in split_sequence if a is not '']
-            if all([re.fullmatch('[ATCG]+', seq.upper()) is not None for seq in clean_sequence_parts]):
-                self._sequence = input_sequence.upper()
-            else:
-                raise SequenceException('DNA sequences can only contain ATCG or nick markers (aka sticky end triangles)')
+    @overhang_3.setter
+    def overhang_3(self, overhang_3):
+        if not (type(overhang_3) is tuple or overhang_3 is None):
+            raise PartDefinitionException('overhang_3 needs to be a tuple or None!')
+        overhang_3_length, overhang_3_strand = overhang_3
+        if (overhang_3_length < 0 or overhang_3_length > len(self.sequence)):
+            raise PartDefinitionException('overhang_3 length has to be between 0 and the length of your part!')
+        if overhang_3_strand not in [3,5,None]:
+            raise PartDefinitionException('overhang_3 strand has to be 3, 5, or None!')
+        self._overhang_3 = overhang_3
 
     @classmethod
     def define_overhangs(cls, sequence, l_overhang_strand=None, l_overhang_bases=0, r_overhang_strand=None, r_overhang_bases=0,
@@ -97,10 +82,6 @@ class Part(DNA):
         * r_overhang_strand: 5
         * l_overhang_bases: 4
 
-        This collapses into the string representation:
-
-        5′ -           TATG▲ggttctNNN...NNNgagagg▼TAGG           - 3'
-
         :param l_overhang_strand: which strand forms the overhang: int({ 3 | 5 }) or None
         :param l_overhang_bases: how many bases form the overhang: int()
         :param r_overhang_strand: which strand forms the overhang: int({ 3 | 5 }) or None
@@ -109,6 +90,7 @@ class Part(DNA):
         """
 
         # --- Checks and warnings --- #
+
         if l_overhang_bases == 0 and r_overhang_bases == 0:
             print('Warning: both overhangs are of length 0. You should just use the regular Part constructor.')
         if l_overhang_bases <= 0:
@@ -116,34 +98,25 @@ class Part(DNA):
         if r_overhang_bases <= 0:
             raise PartDefinitionException('r_overhang_bases must be 0 or greater!')
 
-        # --- Process sequence into Part syntax --- #
+        # --- Process overhangs if they exist --- #
 
-        # Low effort solution... Introduce cuts to left/right side of DNA so that desired overhang type remains
-        l_overhang_type = {3: '▲', 5: '▼'}
-        r_overhang_type = {3: '▼', 5: '▲'}
-
-        # Right overhang
-        right_overhang_sequence = ''
-        if r_overhang_strand is None:
-            r_overhang_bases = 0  # Ignore user input if r_overhang_strand == None
-        else:
-            if r_overhang_strand not in [3, 5]:
-                raise PartDefinitionException(f'r_overhang_strand can only be int(3), int(5), or None! ({type(r_overhang_strand), r_overhang_strand} was provided)')
-            right_overhang_sequence = r_overhang_type[r_overhang_strand] + sequence[-r_overhang_bases:]
-
-        # Left overhang
-        left_overhang_sequence = ''
-        if l_overhang_strand is None:
-            l_overhang_bases = 0  # Ignore user input if l_overhang_strand == None
+        # 5' overhang
+        if l_overhang_bases == 0:
+            overhang_5 = None
         else:
             if l_overhang_strand not in [3, 5]:
-                raise PartDefinitionException(f'l_overhang_strand can only be int(3), int(5), or None! ({type(l_overhang_strand), l_overhang_strand} was provided)')
-            left_overhang_sequence = sequence[:l_overhang_bases] + l_overhang_type[l_overhang_strand]
+                raise PartDefinitionException(f'l_overhang_strand can only be int(3) or int(5)! ({type(l_overhang_strand), l_overhang_strand} was provided)')
+            overhang_5 = (l_overhang_bases, l_overhang_strand)
 
-        # Annotated sequence
-        annotated_sequence = left_overhang_sequence + sequence[r_overhang_bases:-l_overhang_bases] + right_overhang_sequence
+        # 3' overhand
+        if l_overhang_bases == 0:
+            overhang_3 = None
+        else:
+            if r_overhang_strand not in [3, 5]:
+                raise PartDefinitionException(f'r_overhang_strand can only be int(3) or int(5)! ({type(r_overhang_strand), r_overhang_strand} was provided)')
+            overhang_3 = (r_overhang_bases, r_overhang_strand)
 
-        return cls(annotated_sequence, id=id, name=name, description=description, features=features, source=source)
+        return cls(sequence, id=id, name=name, description=description, features=features, source=source, overhang_3=overhang_3, overhang_5=overhang_5)
 
     def cut(self, cut_position, rxn_enzyme):
         """
@@ -156,33 +129,29 @@ class Part(DNA):
         """
         cut_index_5, cut_index_3 = self.find_cut_indicies(cut_position, rxn_enzyme)
 
+        # Check if restriction site has already been processed
+        if max(cut_index_5, cut_index_3) >= (len(self.sequence) - self.overhang_3[0]):
+            return self, None
+
+        new_part_1 = self.sequence[:cut_index_5]
+        new_part_2 = self.sequence[cut_index_5:]
+
         # Handle blunt-end cuts
         if cut_index_5 == cut_index_3:
-            new_part_1 = self.sequence[:cut_index_5]
-            new_part_2 = self.sequence[cut_index_5:]
+            part_1_overhang_3 = None
+            part_2_overhang_5 = None
 
+        # Handle sticky ends
         else:
-            left_cut = min(cut_index_5, cut_index_3)
-            right_cut = max(cut_index_5, cut_index_3)
-            sticky_end_sequence = self.sequence[left_cut:right_cut]
+            overhang = 5 if (cut_index_5 - cut_index_3) > 0 else 3
 
-            if '▲' in sticky_end_sequence or '▼' in sticky_end_sequence:
-                return self, None
+            part_1_overhang_3 = (abs(cut_index_5 - cut_index_3), overhang)
+            part_2_overhang_5 = (abs(cut_index_5 - cut_index_3), overhang)
 
-            part_1_overhang = '▼' if cut_index_5 > cut_index_3 else '▲'
-            part_2_overhang = '▲' if cut_index_5 > cut_index_3 else '▼'
-
-            new_part_1 = self.sequence[:cut_index_5] + part_1_overhang + sticky_end_sequence
-            new_part_2 = sticky_end_sequence + part_2_overhang + self.sequence[cut_index_5:]
-
-        return Part(new_part_1, id=self.id, name=f'{self.name}-l_product', features=self.features, source=self.id), \
-               Part(new_part_2, id=self.id, name=f'{self.name}-r_product', features=self.features, source=self.id)
-
-    def return_pure_sequence(self):
-        """
-        :return: part sequence without special symbols, only bases
-        """
-        return ''.join([base for base in self.sequence if base in 'ATCG'])
+        return Part(new_part_1, id=self.id, name=f'{self.name}-l_product', features=self.features, source=self.id,
+                    overhang_5=self.overhang_5, overhang_3=part_1_overhang_3),\
+               Part(new_part_2, id=self.id, name=f'{self.name}-r_product', features=self.features, source=self.id,
+                    overhang_5=part_2_overhang_5, overhang_3=self.overhang_3)
 
 
 class Backbone(Part):
