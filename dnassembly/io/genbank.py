@@ -1,12 +1,11 @@
 #! /usr/bin/env python3
 
-from itertools import tee
-
 from Bio import SeqIO
 from Bio.SeqFeature import FeatureLocation, CompoundLocation
 
 from ..dna import Feature
-from ..utils import pairwise
+from ..utils import pairwise, reverse_complement
+from ..utils.conversion import convert_dnassembly_to_biopython
 
 # --- Read files --- #
 
@@ -58,19 +57,31 @@ def read_genbank(file_path, output_format):
             print('Only features compatible with BioPython FeatureLocation or CompoundLocation objects are currently supported...')
             continue
 
+        # todo: move all this to alternate Feature constructor that accepts a sequence and BioPython Feature
         feature_type = feature.type
         strand = feature.location.strand
 
-        # Get feature name... what the difference between locus tag and label is...
-        feature_keys = list({'label', 'locus_tag'} & set(feature.qualifiers.keys()))
+        # get reverse complement of feature sequence if strand == -1
+        if strand == -1:
+            feature_sequence = reverse_complement(feature_sequence)
 
-        if len(feature_keys) == 0:
+        # Get feature name... what the difference between locus tag and label is...
+        feature_label_keys = list({'label', 'locus_tag'} & set(feature.qualifiers.keys()))
+
+        if len(feature_label_keys) == 0:
             feature_name = 'Undefined Feature'
         else:
-            feature_name = feature.qualifiers.get(feature_keys[0])[0]
+            feature_name = feature.qualifiers.get(feature_label_keys[0])[0]
 
-        parsed_feature = Feature(feature_sequence, feature_type, strand, name=feature_name)
+        # Get feature colors
+        forward_color = feature.qualifiers.get('ApEinfo_fwdcolor')[0] if feature.qualifiers.get('ApEinfo_fwdcolor') else None
+        reverse_color = feature.qualifiers.get('ApEinfo_revcolor')[0] if feature.qualifiers.get('ApEinfo_revcolor') else None
 
+        # Make Feature
+        parsed_feature = Feature(feature_sequence, feature_type, strand, id=feature_name, name=feature_name,
+                                 forward_color=forward_color, reverse_color=reverse_color)
+
+        # Add feature to feature_list if feature has not already been encountered
         if len(feature_sequence_set & {parsed_feature.reverse_complement(), parsed_feature.sequence}) == 0:
             feature_list.append(parsed_feature)
             feature_sequence_set.add(feature_sequence)
@@ -87,12 +98,14 @@ def read_genbank(file_path, output_format):
 
 # --- Write files --- #
 
-def write_genbank(file_contents, output_path='new_assembly.gb', output_ape=False):
+def write_genbank(ipnut_dna, output_path='new_assembly.gb'):
     """
     Output a plasmid in the GenBank file format (.gb)
-    :param file_contents: dict containing information to write to file
+    :param ipnut_dna: DNA entity
     :param output_path: path
-    :param output_ape: write unique feature IDs associated with the ApE file format (why would you do this?)
     :return:
     """
-    pass
+    input_as_biopython = convert_dnassembly_to_biopython(ipnut_dna)
+
+    with open(output_path, "w") as output:
+        SeqIO.write(input_as_biopython, output, "gb")
