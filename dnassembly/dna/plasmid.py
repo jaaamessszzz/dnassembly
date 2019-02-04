@@ -1,9 +1,10 @@
 #! /usr/bin/env python3
+
 import re
 
 from .dna import DNA
 from .part import Part
-from ..utils import cycle_in_frames
+
 
 class Plasmid(DNA):
     """
@@ -17,11 +18,14 @@ class Plasmid(DNA):
 
     def __init__(self, sequence, id=None, name=None, features=None, description=None, source=None):
         super().__init__(sequence, id=id, name=name, features=features, description=description, source=source)
+        self.feature_map = None  # Populated by map_features method
 
     def __repr__(self):
         return f'\nPlasmid:\t{self.id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
                f'{self.description:<80}\n' \
                f'{self.sequence[:25]}...\n'
+
+    # --- Methods --- #
 
     def linearize(self, cut_position, rxn_enzyme):
         """
@@ -63,7 +67,26 @@ class Plasmid(DNA):
         Maps seqeunce features onto the plasmid sequence. This overrides the map_feature method in DNA to ensure
         features that span the beginning/end of the sequence are annotated.
 
-        :return: {(start, end): feature}
+        :return: {(start, end, strand): feature} where strand = 1 for 5' -> 3', strand = -1 for 3' -> 5'
         """
-        pass
+        feature_dict = dict()
+
+        for feature in self.features:
+            regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
+            matches = re.finditer(regex_pattern, self.sequence)
+
+            for match in matches:
+                strand = 1 if match.group() == feature.sequence else -1
+                feature_dict_key = (match.start(), match.end(), strand)
+
+                # Store features with same locations in list
+                if feature_dict_key in feature_dict.keys():
+                    feature_dict[feature_dict_key].append(feature)
+                else:
+                    feature_dict[(match.start(), match.end(), strand)] = [feature]
+
+        self.feature_map = feature_dict
+
+
+
 

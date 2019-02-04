@@ -30,6 +30,8 @@ class Part(DNA):
         return f'DNA:\t{self.id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
                f'{self.sequence[:25]} ... {self.sequence[-25:]}\n'
 
+    # --- Property Setters --- #
+
     @property
     def overhang_5(self):
         return self._overhang_5
@@ -118,10 +120,12 @@ class Part(DNA):
 
         return cls(sequence, id=id, name=name, description=description, features=features, source=source, overhang_3=overhang_3, overhang_5=overhang_5)
 
+    # --- Methods --- #
+
     def cut(self, cut_position, rxn_enzyme):
         """
-        Cut Part at cut_position with rxn_enzyme to yield two new Parts
-        This method manipulates Part.sequence and expects a cut position found on Part.sequence!
+        Cut Part at cut_position with rxn_enzyme to yield two new Parts. This method manipulates Part.sequence and
+        expects a cut position found on Part.sequence!
 
         :param cut_position: position on Part sequence to find restriction site for rxn_enzyme
         :param rxn_enzyme: BioPython Restriction object of a Restriction Enzyme
