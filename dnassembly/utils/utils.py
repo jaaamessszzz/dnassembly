@@ -1,6 +1,8 @@
 #! /usr/bin/env python3
 from itertools import tee
 
+dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+
 # Thank you itertools cookbook!
 def pairwise(iterable):
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -21,3 +23,7 @@ def cycle_in_frames(iterable, frame=3):
         if cycle_count < len(iterable):
             yield cycle_iterable[cycle_count: cycle_count + frame]
             cycle_count += 1
+
+def reverse_complement(seq):
+    "Get reverse complement of DNA sequence"
+    return ''.join(reversed([dna_basepairs[a] if a in dna_basepairs.keys() else a for a in seq]))
