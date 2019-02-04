@@ -17,6 +17,8 @@ class GoldenGate(CloningReaction):
     def __init__(self, input_dna_list, restriction_enzyme_list):
         super(GoldenGate, self).__init__(input_dna_list, restriction_enzyme_list)
 
+    # --- Methods --- #
+
     def verify_parts(self):
         """
         Verify that none of the parts contain an internal restriction site
@@ -47,10 +49,6 @@ class GoldenGate(CloningReaction):
             sticky_match_r = part.overhang_3
 
             # Process sticky ends into nodes
-
-            # Nodes store overhang information as ▼TATG▲ or ▲TATG▼
-            # I can check {is TATG▲ from Part(TATG▲NNNNNN) in node ▼TATG▲}
-            # This way edge are only formed between complementary overhangs
 
             # (5, TATG) as nodes, where 5 is the overhang strand
             # complementary sticky ends are always formed by the same strand
@@ -147,12 +145,13 @@ class GoldenGate(CloningReaction):
             final_assembly_product = complete_assemblies[0]
 
             # Find features that actually exist in Plasmid
-            plasmid_feature_list = list()
+            plasmid_feature_set = set()
             for feature in final_assembly_product['features']:
-                if feature.sequence in final_assembly_product['sequence']:
-                    plasmid_feature_list.append(feature)
+                regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
+                if len(re.findall(regex_pattern, final_assembly_product['sequence'])) > 0:
+                    plasmid_feature_set.add(feature)
 
-            return Plasmid(final_assembly_product['sequence'], id=new_id, name=new_id, features=plasmid_feature_list,
+            return Plasmid(final_assembly_product['sequence'], id=new_id, name=new_id, features=list(plasmid_feature_set),
                            description=new_description, source=final_assembly_product['sources'])
 
 

@@ -1,13 +1,12 @@
 #! /usr/bin/env python3
 
 import re
-from pprint import pprint
 from collections import OrderedDict
 
 from Bio.Restriction.Restriction import RestrictionType
 
 from ..dna import DNA, Plasmid, Part
-from ..utils import pairwise
+from dnassembly.utils.utils import pairwise
 
 
 class CloningReaction(object):
@@ -22,10 +21,15 @@ class CloningReaction(object):
     def __init__(self, input_dna_list, restriction_enzyme_list):
         """
         :param input_dna_list: list of DNA entities for a particular cloning reaction
+        :param restriction_enzyme_list: list of BioPython Restriction Enzymes for a particular cloning reaction
         """
         self.input_dna_list = input_dna_list
         self.restriction_enzyme_list = restriction_enzyme_list
         self.digest_pool = None  # Populated by self.digest()
+
+    # todo: implement __add__ method to combine reactions
+
+    # --- Property Setters --- #
 
     @property
     def input_dna_list(self):
@@ -66,6 +70,8 @@ class CloningReaction(object):
                 raise EnzymeException('Only BioPython Restriction Enzymes can be added to catalyze reactions!')
         self._restriction_enzyme_list = enzyme_list
 
+    # --- Methods --- #
+
     def find_restriction_sites(self, input_dna):
         """
         Find restriction sites in input_dna for enzymes in restriction_enzyme_list
@@ -93,7 +99,15 @@ class CloningReaction(object):
 
         return rxn_enzyme_cuts
 
-    def digest_recursively(self):
+    def digest(self, recursive=False):
+        """
+        Digest DNA in input_dna_list using slicing (default) or the recursive method.
+        :param recursive: use recursive method for digestion if True
+        :return:
+        """
+        self._digest_recursively() if recursive else self._digest_by_slicing()
+
+    def _digest_recursively(self):
         """
         Digest all DNA entities in input_dna_list with with all enzymes in restriction_enzyme_list to produce Parts.
 
@@ -151,7 +165,7 @@ class CloningReaction(object):
         # Populate digest pool
         self.digest_pool = digestion_products
 
-    def digest_by_slicing(self):
+    def _digest_by_slicing(self):
         """
         Iterate through rxn_enzyme_cuts in order and pull sequences from DNA to produce new Parts.
         Super dirty initial implementation, we'll clean that up later (he said 5 years ago)...
@@ -251,7 +265,6 @@ class CloningReaction(object):
             new_part = Part(new_part_sequence, id=input_dna.id, name=input_dna.name, features=input_dna.features,
                             description=input_dna.name, source=input_dna.id, overhang_5=part_overhang_5,
                             overhang_3=part_overhang_3)
-            print('I made dis.', left_cut_index, right_cut_index)
             return new_part
 
         digestion_products = list()
@@ -291,7 +304,7 @@ class CloningReaction(object):
                 left_cut = (dict_keys[-1], sorted_rxn_enzyme_cuts[dict_keys[-1]])
                 plasmid_span_part = make_part(input_dna, left_cut, right_cut, plasmid_span=True)
 
-                # Check restriction sites against last part to check for sites that may have spanned gap
+                # Check for restriction sites that may have spanned gap
                 rxn_enzyme_cuts = self.find_restriction_sites(plasmid_span_part)
 
                 if not rxn_enzyme_cuts:

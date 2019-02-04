@@ -32,5 +32,6 @@ class MoCloAssemblyType(Enum):
     CASSETTE = BsaI
     MULTICASSETTE = BsmBI
 
+
 class AssemblyTypeException(Exception):
     pass
