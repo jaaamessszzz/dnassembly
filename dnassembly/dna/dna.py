@@ -17,6 +17,7 @@ class DNA(object):
     """
 
     # --- Class variables --- #
+
     dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
     def __init__(self, sequence, id=None, name=None, features=None, description=None, source=None):
@@ -34,6 +35,8 @@ class DNA(object):
         return f'DNA:\t{self.id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
                f'{self.sequence[:25]} ... {self.sequence[-25:]}\n'
 
+    # --- Property Setters --- #
+
     @property
     def sequence(self):
         return self._sequence
@@ -50,6 +53,8 @@ class DNA(object):
             self._sequence = input_sequence.upper()
         else:
             raise SequenceException('DNA sequences can only contain ATCG.')
+
+    # --- Methods --- #
 
     def complement(self):
         """
@@ -122,13 +127,24 @@ class Feature(DNA):
     """
     A unique sequence of DNA that performs some biological function of interest
     """
-    def __init__(self, sequence, feature_type, strand, id=None, name=None, features=None, description=None):
+    def __init__(self, sequence, feature_type, strand, id=None, name=None, features=None, description=None,
+                 forward_color=None, reverse_color=None):
         super(Feature, self).__init__(sequence, id=id, name=name, features=features, description=description)
         self.feature_type = feature_type
         self.strand = strand
+        self.forward_color = forward_color
+        self.reverse_color = reverse_color
 
     def __repr__(self):
         return f'Feature:\t{self.id}\t\t{self.name}\t\tlength: ({len(self.sequence)})\n{self.sequence[:25]}...\n'
+
+    def __eq__(self, other):
+        return self.__hash__() == other.__hash__()
+
+    def __hash__(self):
+        return hash((self.sequence, self.feature_type, self.id))
+
+    # --- Property Setters --- #
 
     @property
     def sequence(self):
