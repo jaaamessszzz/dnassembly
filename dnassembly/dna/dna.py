@@ -20,19 +20,20 @@ class DNA(object):
 
     dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
-    def __init__(self, sequence, id=None, name=None, features=None, description=None, source=None):
+    def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None):
         """
         :param sequence: string representation of dsDNA 5' -> 3'
         """
-        self.id = id
+        self.entity_id = entity_id
         self.name = name
         self.sequence = sequence
         self.features = features
         self.description = description
         self.source = source
+        self.feature_map = None  # Populated by map_features method
 
     def __repr__(self):
-        return f'DNA:\t{self.id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
+        return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
                f'{self.sequence[:25]} ... {self.sequence[-25:]}\n'
 
     # --- Property Setters --- #
@@ -79,10 +80,26 @@ class DNA(object):
 
     def map_features(self):
         """
-        Maps seqeunce features onto the plasmid sequence
+        Maps seqeunce features onto the DNA sequence
         :return: {(start, end): feature}
         """
-        pass
+        feature_dict = dict()
+
+        for feature in self.features:
+            regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
+            matches = re.finditer(regex_pattern, self.sequence)
+
+            for match in matches:
+                strand = 1 if match.group() == feature.sequence else -1
+                feature_dict_key = (match.start(), match.end(), strand)
+
+                # Store features with same locations in list
+                if feature_dict_key in feature_dict.keys():
+                    feature_dict[feature_dict_key].append(feature)
+                else:
+                    feature_dict[(match.start(), match.end(), strand)] = [feature]
+
+        self.feature_map = feature_dict
 
     def find_cut_indicies(self, cut_position, rxn_enzyme):
         """
@@ -120,29 +137,29 @@ class DNA(object):
             cut_index_5 = cut_position + fst5
             cut_index_3 = cut_position + len(rxn_site) + fst3
 
-        return cut_index_5, cut_index_3
+        return cut_index_5, cut_index_3, strand
 
 
 class Feature(DNA):
     """
     A unique sequence of DNA that performs some biological function of interest
     """
-    def __init__(self, sequence, feature_type, strand, id=None, name=None, features=None, description=None,
+    def __init__(self, sequence, feature_type, strand, entity_id=None, name=None, features=None, description=None,
                  forward_color=None, reverse_color=None):
-        super(Feature, self).__init__(sequence, id=id, name=name, features=features, description=description)
+        super(Feature, self).__init__(sequence, entity_id=entity_id, name=name, features=features, description=description)
         self.feature_type = feature_type
         self.strand = strand
         self.forward_color = forward_color
         self.reverse_color = reverse_color
 
     def __repr__(self):
-        return f'Feature:\t{self.id}\t\t{self.name}\t\tlength: ({len(self.sequence)})\n{self.sequence[:25]}...\n'
+        return f'Feature:\t{self.entity_id}\t\t{self.name}\t\tlength: ({len(self.sequence)})\n{self.sequence[:25]}...\n'
 
     def __eq__(self, other):
         return self.__hash__() == other.__hash__()
 
     def __hash__(self):
-        return hash((self.sequence, self.feature_type, self.id))
+        return hash((self.sequence, self.feature_type, self.entity_id))
 
     # --- Property Setters --- #
 

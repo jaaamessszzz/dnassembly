@@ -2,9 +2,8 @@
 
 import re
 
-from .dna import DNA
+from .dna import DNA, RestrictionSiteException
 from .part import Part
-
 
 class Plasmid(DNA):
     """
@@ -16,14 +15,16 @@ class Plasmid(DNA):
     for circular plasmid representation
     """
 
-    def __init__(self, sequence, id=None, name=None, features=None, description=None, source=None):
-        super().__init__(sequence, id=id, name=name, features=features, description=description, source=source)
+    def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None):
+        super().__init__(sequence, entity_id=entity_id, name=name, features=features, description=description, source=source)
         self.feature_map = None  # Populated by map_features method
 
     def __repr__(self):
-        return f'\nPlasmid:\t{self.id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
+        return f'\nPlasmid:\t{self.entity_id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
                f'{self.description:<80}\n' \
                f'{self.sequence[:25]}...\n'
+
+    # todo: how do I arrange a plasmid sequence so I can hash?
 
     # --- Methods --- #
 
@@ -32,8 +33,10 @@ class Plasmid(DNA):
         Linearize Plasmid at a given cut site with rxn_enzyme to produce a Part
         :return:
         """
-
-        cut_index_5, cut_index_3 = self.find_cut_indicies(cut_position, rxn_enzyme)
+        try:
+            cut_index_5, cut_index_3, strand = self.find_cut_indicies(cut_position, rxn_enzyme)
+        except RestrictionSiteException:
+            return self
 
         # --- Deque so cut first blunt/sticky end is at end of linear sequence --- #
 
@@ -48,17 +51,17 @@ class Plasmid(DNA):
         if cut_index_5 == cut_index_3:
             overhang_strand = None
         else:
-            overhang_strand = 5 if cut_index_5 < cut_index_3 else 3
+            overhang_strand = 5 if (cut_index_3 - cut_index_5) * strand > 0 else 3
 
         input_dna = Part.define_overhangs(sequence_intermediate,
                                           l_overhang_strand=overhang_strand,
                                           l_overhang_bases=sticky_end_size,
                                           r_overhang_strand=overhang_strand,
                                           r_overhang_bases=sticky_end_size,
-                                          id=self.id,
+                                          entity_id=self.entity_id,
                                           name=f'{self.name}_linear',
                                           features=self.features,
-                                          source=self.id)
+                                          source=self.entity_id)
 
         return input_dna
 
@@ -70,22 +73,25 @@ class Plasmid(DNA):
         :return: {(start, end, strand): feature} where strand = 1 for 5' -> 3', strand = -1 for 3' -> 5'
         """
         feature_dict = dict()
+        if self.features:
+            for feature in self.features:
+                regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
+                matches = re.finditer(regex_pattern, self.sequence)
 
-        for feature in self.features:
-            regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
-            matches = re.finditer(regex_pattern, self.sequence)
+                for match in matches:
+                    print(feature.sequence)
+                    print(match.group())
+                    print(re.fullmatch(feature.sequence, match.group()))
+                    strand = 1 if re.fullmatch(feature.sequence, match.group()) is not None else -1
+                    feature_dict_key = (match.start(), match.end(), strand)
 
-            for match in matches:
-                strand = 1 if match.group() == feature.sequence else -1
-                feature_dict_key = (match.start(), match.end(), strand)
+                    # Store features with same locations in list
+                    if feature_dict_key in feature_dict.keys():
+                        feature_dict[feature_dict_key].append(feature)
+                    else:
+                        feature_dict[(match.start(), match.end(), strand)] = [feature]
 
-                # Store features with same locations in list
-                if feature_dict_key in feature_dict.keys():
-                    feature_dict[feature_dict_key].append(feature)
-                else:
-                    feature_dict[(match.start(), match.end(), strand)] = [feature]
-
-        self.feature_map = feature_dict
+            self.feature_map = feature_dict
 
 
 

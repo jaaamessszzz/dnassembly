@@ -1,8 +1,11 @@
 #! /usr/bin/env python3
 
 import re
+from itertools import combinations
+from difflib import SequenceMatcher
 from collections import OrderedDict
 
+import networkx
 from Bio.Restriction.Restriction import RestrictionType
 
 from ..dna import DNA, Plasmid, Part
@@ -22,12 +25,11 @@ class CloningReaction(object):
         """
         :param input_dna_list: list of DNA entities for a particular cloning reaction
         :param restriction_enzyme_list: list of BioPython Restriction Enzymes for a particular cloning reaction
+        :param _digested: has a digestion been run on input_dna_list?
         """
         self.input_dna_list = input_dna_list
         self.restriction_enzyme_list = restriction_enzyme_list
-        self.digest_pool = None  # Populated by self.digest()
-
-    # todo: implement __add__ method to combine reactions
+        self._digested = False  # Set to True is successfully _digested by self.digest()
 
     # --- Property Setters --- #
 
@@ -50,7 +52,7 @@ class CloningReaction(object):
             if isinstance(dna, DNA):
                 dna_list.append(dna)
             else:
-                raise DNAException('Only DNA can be added as substrates to cloning reactions!')
+                raise ReactionDefinitionException('Only DNA can be added as substrates to cloning reactions!')
         self._input_dna_list = dna_list
 
     @property
@@ -67,7 +69,7 @@ class CloningReaction(object):
             if isinstance(enzyme, RestrictionType):
                 enzyme_list.append(enzyme)
             else:
-                raise EnzymeException('Only BioPython Restriction Enzymes can be added to catalyze reactions!')
+                raise ReactionDefinitionException('Only BioPython Restriction Enzymes can be added to catalyze reactions!')
         self._restriction_enzyme_list = enzyme_list
 
     # --- Methods --- #
@@ -99,13 +101,16 @@ class CloningReaction(object):
 
         return rxn_enzyme_cuts
 
-    def digest(self, recursive=False):
+    def digest(self, recursive=True):
         """
         Digest DNA in input_dna_list using slicing (default) or the recursive method.
         :param recursive: use recursive method for digestion if True
         :return:
         """
-        self._digest_recursively() if recursive else self._digest_by_slicing()
+        if self._digested is False:
+            self._digest_recursively() if recursive else self._digest_by_slicing()
+        else:
+            raise ReactionDefinitionException('The DNA in this reaction has already been digested!')
 
     def _digest_recursively(self):
         """
@@ -130,6 +135,10 @@ class CloningReaction(object):
 
             rxn_enzyme_cuts = self.find_restriction_sites(input_dna)
 
+            if len(rxn_enzyme_cuts) == 0 and isinstance(input_dna, Plasmid):
+                raise AssemblyException(f'Plasmid {input_dna.entity_id} cannot be cut by the restriction enzymes in this reaction!\n'
+                                        f'Enzymes: {" ".join([a.__name__ for a in self.restriction_enzyme_list])}')
+
             # --- Break input_dna into Parts --- #
 
             # Linearize Plasmid if necessary
@@ -147,7 +156,7 @@ class CloningReaction(object):
             sorted_rxn_enzyme_cuts = OrderedDict(reversed(sorted(rxn_enzyme_cuts.items(), key=lambda t: t[0])))
 
             # Proceed through sequence in reverse and break down into Parts
-            source_plasmid = input_dna.id
+            source_plasmid = input_dna.entity_id
             for cutsite_position, cutsite_info in sorted_rxn_enzyme_cuts.items():
                 input_dna, part_temp = input_dna.cut(cutsite_position, cutsite_info['enzyme'])
 
@@ -162,8 +171,9 @@ class CloningReaction(object):
             input_dna.source = source_plasmid
             digestion_products.append(input_dna)
 
-        # Populate digest pool
-        self.digest_pool = digestion_products
+        # Replace input_dna_list with new digestion products
+        self.input_dna_list = digestion_products
+        self._digested = True
 
     def _digest_by_slicing(self):
         """
@@ -174,32 +184,25 @@ class CloningReaction(object):
         and if a plasmid only has one cut...
         :return:
         """
-        def process_5(cut_index_5, cut_index_3):
-            cut_index_difference = cut_index_5 - cut_index_3
+        def process_sticky_end(cut_index_5, cut_index_3, strand):
+            cut_index_difference = (cut_index_3 - cut_index_5) * strand
             if cut_index_difference == 0:
                 return None
             else:
-                overhang_strand = 3 if cut_index_difference > 0 else 5
-                return (abs(cut_index_difference), overhang_strand)
-
-        def process_3(cut_index_5, cut_index_3):
-            cut_index_difference = cut_index_5 - cut_index_3
-            if cut_index_difference == 0:
-                return None
-            else:
-                overhang_strand = 3 if cut_index_difference < 0 else 5
-                return (abs(cut_index_difference), overhang_strand)
+                overhang_strand = 5 if cut_index_difference > 0 else 3
+                return abs(cut_index_difference), overhang_strand
 
         # Nested because this function really should not be exposed, defeats the point of CloningReaction objects
         def make_part(template_dna, left_cut, right_cut, plasmid_span=False):
             """
             Use {cut_position: rxn_enzyme_dict} to create a new part from input_dna
+            There are subtle differences in how 5' and 3' ends are processed which makes generalizing code difficult...
+
             :param left_cut: {cut_position: {'enzyme': BioPython Restriction, 'strand': {1 | -1} } }
             :param right_cut: {cut_position: {'enzyme': BioPython Restriction, 'strand': {1 | -1} } }
             :param plasmid_span: assemble
             """
 
-            "There are subtle differences in how 5' and 3' ends are processed which makes generalizing code difficult."
             # --- Process 5' of new Part --- #
 
             if left_cut[0] == 'Start':
@@ -209,20 +212,21 @@ class CloningReaction(object):
 
             else:
                 cut_position_left, rxn_enzyme_dict_left = left_cut
-                cut_index_5, cut_index_3 = template_dna.find_cut_indicies(cut_position_left, rxn_enzyme_dict_left['enzyme'])
+                cut_index_5, cut_index_3, strand = template_dna.find_cut_indicies(cut_position_left, rxn_enzyme_dict_left['enzyme'])
                 left_cut_indicies = (cut_index_5, cut_index_3)
                 left_cut_index = min(left_cut_indicies)
 
                 if isinstance(template_dna, Plasmid):
                     # Process restriction site
-                    part_overhang_5 = process_5(cut_index_5, cut_index_3)
+                    part_overhang_5 = process_sticky_end(cut_index_5, cut_index_3, strand)
                 else:
                     # Handle already-processed restriction sites at part terminals (e.g. digested BsaI part backbone)
-                    if min(cut_index_5, cut_index_3) <= (template_dna.overhang_5[0]):
+                    stick_end_offset = 0 if template_dna.overhang_5 is None else template_dna.overhang_5[0]
+                    if min(cut_index_5, cut_index_3) <= stick_end_offset:
                         part_overhang_5 = template_dna.overhang_5
                     # Process restriction site
                     else:
-                        part_overhang_5 = process_5(cut_index_5, cut_index_3)
+                        part_overhang_5 = process_sticky_end(cut_index_5, cut_index_3, strand)
 
             # --- Process 3' of new part --- #
 
@@ -232,20 +236,21 @@ class CloningReaction(object):
                 right_cut_indices = (right_cut_index, right_cut_index)
             else:
                 cut_position_right, rxn_enzyme_dict_right = right_cut
-                cut_index_5, cut_index_3 = template_dna.find_cut_indicies(cut_position_right, rxn_enzyme_dict_right['enzyme'])
+                cut_index_5, cut_index_3, strand = template_dna.find_cut_indicies(cut_position_right, rxn_enzyme_dict_right['enzyme'])
                 right_cut_indices = (cut_index_5, cut_index_3)
                 right_cut_index = max(right_cut_indices)
 
                 if isinstance(template_dna, Plasmid):
                     # Process restriction site
-                    part_overhang_3 = process_3(cut_index_5, cut_index_3)
+                    part_overhang_3 = process_sticky_end(cut_index_5, cut_index_3, strand)
                 else:
                     # Handle already-processed restriction sites at part terminals (e.g. digested BsaI part backbone)
-                    if max(cut_index_5, cut_index_3) >= (len(template_dna.sequence) - template_dna.overhang_3[0]):
+                    stick_end_offset = len(template_dna.sequence) if template_dna.overhang_5 is None else (len(template_dna.sequence) - template_dna.overhang_3[0])
+                    if max(cut_index_5, cut_index_3) >= stick_end_offset:
                         part_overhang_3 = template_dna.overhang_3
                     # Process restriction site
                     else:
-                        part_overhang_3 = process_3(cut_index_5, cut_index_3)
+                        part_overhang_3 = process_sticky_end(cut_index_5, cut_index_3, strand)
 
             # --- Check for dud parts --- #
             "These pop up as a result of checking for parts across plasmid sequence end/start."
@@ -258,12 +263,13 @@ class CloningReaction(object):
                 return None
 
             # --- Make new Part --- #
+
             if plasmid_span:
                 new_part_sequence = template_dna.sequence[left_cut_index:] + template_dna.sequence[:right_cut_index]
             else:
                 new_part_sequence = template_dna.sequence[left_cut_index:right_cut_index]
-            new_part = Part(new_part_sequence, id=input_dna.id, name=input_dna.name, features=input_dna.features,
-                            description=input_dna.name, source=input_dna.id, overhang_5=part_overhang_5,
+            new_part = Part(new_part_sequence, entity_id=input_dna.entity_id, name=input_dna.name, features=input_dna.features,
+                            description=input_dna.name, source=input_dna.entity_id, overhang_5=part_overhang_5,
                             overhang_3=part_overhang_3)
             return new_part
 
@@ -275,6 +281,10 @@ class CloningReaction(object):
             # --- Find restriction sites in input_dna --- #
 
             rxn_enzyme_cuts = self.find_restriction_sites(input_dna)
+            if len(rxn_enzyme_cuts) == 0 and isinstance(input_dna, Plasmid):
+                raise AssemblyException(f'Plasmid {input_dna.entity_id} cannot be cut by the restriction enzymes in this reaction!\n'
+                                        f'Enzymes: {" ".join([a.__name__ for a in self.restriction_enzyme_list])}')
+
             sorted_rxn_enzyme_cuts = OrderedDict(sorted(rxn_enzyme_cuts.items(), key=lambda t: t[0]))
 
             # If Part/DNA, add overhang information to start/end of OrderedDict
@@ -325,29 +335,210 @@ class CloningReaction(object):
                         plasmid_span_parts = make_part(plasmid_span_part, left_cut, right_cut)
                         digestion_products.append(plasmid_span_parts)
 
-        self.digest_pool = [a for a in digestion_products if a is not None]
+        self.input_dna_list = [a for a in digestion_products if a is not None]
+        self._digested = True
 
-    def interpret_biopython_rxn_enzymes(self, rxn_enzyme):
+
+class StickyEndAssembly(CloningReaction):
+    """
+    Perform assemblies using sticky-end methods.
+
+    * Golden Gate
+    * BioBrick
+    """
+
+    def __init__(self, input_dna_list, restriction_enzyme_list):
+        super().__init__(input_dna_list, restriction_enzyme_list)
+
+    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description='New assembly'):
         """
-        Pro: BioPython provides classes for individual enzymes from REBASE
-        Con: BioPython's Restriction class has not been applied outside of analysis
+        Performs an assembly provided a pool of Parts.
 
-        We are here to fix that.
-
-        From what I have been able to gather, non-obvious properties of a given enzyme:
-        * compsite: regex for restriction site
-        * fst3:     position of first cut on 3' strand counting back from end of restriction site
-        * fst5:     position of first cut on 5' strand counting forward from beginning of restriciton site
-        * charac:   (fst5, fst3, snd5, snd3, compsite)
-
+        Inspiration from pydna to use networkx to represent assemblies as a graph. However I think we can be a lot more
+        efficient and enforce our biological constraints at the same time.
+        :param plasmids_only: only report cyclic assemblies that fulfill reaction constraints
         :return:
         """
-        pass
+
+        # --- Sanity Checks --- #
+
+        """
+        All DNA entities in input_dna_list should be parts. Any undigested Plasmids with the same resistance marker as
+        your assembly product will totally mess up your day.
+        """
+        if any([isinstance(dna, Plasmid) for dna in self.input_dna_list]):
+            raise ReactionDefinitionException('Undigested plasmids cannot be part of an assembly!')
+
+        # --- Assemble Graph --- #
+
+        directed_graph = networkx.DiGraph()
+
+        # Add nodes and edges for each part in digest_pool
+        for part in self.input_dna_list:
+
+            # Find indicies of sticky ends, continue if both ends to not have sticky ends
+            # We will handle this later, this step will mess things up for linear assemblies
+
+            sticky_match_l = part.overhang_5
+            sticky_match_r = part.overhang_3
+
+            # Process sticky ends into nodes
+
+            # (5, TATG) as nodes, where 5 is the overhang strand
+            # complementary sticky ends are always formed by the same strand
+            # 5'/3' end of DNA is encoded by direction of edges
+
+            if sticky_match_l is None:
+                l_node = 'Blunt_Left'
+            else:
+                l_node = (part.sequence[:sticky_match_l[0]], sticky_match_l[1])
+
+            if sticky_match_r is None:
+                r_node = 'Blunt_Right'
+            else:
+                r_node = (part.sequence[-sticky_match_r[0]:], sticky_match_r[1])  # (overhang_sequence, overhang_strand)
+
+            directed_graph.add_node(l_node)
+            directed_graph.add_node(r_node)
+
+            # Add directed edge between nodes (5' -> 3') and add Part as edge attribute
+            directed_graph.add_edge(l_node, r_node, {'part': part})
+
+        # --- Traverse Graph --- #
+
+        # First: simple_cycles
+        graph_cycles = networkx.algorithms.cycles.simple_cycles(directed_graph)
+
+        # Store already processed cycles as set(nodes)
+        processed_cycles = list()
+        intermediate_assemblies = list()
+
+        for cycle in graph_cycles:
+
+            if not any([set(cycle) == processed_cycle for processed_cycle in processed_cycles]):
+                assembly_dict = dict()
+
+                feature_list = list()
+                source_list = list()
+                assembled_sequence = ''
+
+                # Iterate through edges and get sequence up to 3' sticky end
+                for node_l, node_r in pairwise(cycle):
+                    current_part = directed_graph[node_l][node_r]['part']
+                    right_sticky_end = 0 if current_part.overhang_3 is None else current_part.overhang_3[0]
+                    assembled_sequence = assembled_sequence + current_part.sequence[:-right_sticky_end]
+                    if current_part.features:
+                        feature_list = feature_list + current_part.features
+                    source_list.append(current_part.source)
+
+                # Get last part of cycle
+                last_part = directed_graph[cycle[-1]][cycle[0]]['part']
+                right_sticky_end = 0 if last_part.overhang_3 is None else last_part.overhang_3[0]
+                assembled_sequence = assembled_sequence + last_part.sequence[:-right_sticky_end]
+                if last_part.features:
+                    feature_list = feature_list + last_part.features
+                source_list.append(last_part.source)
+
+                assembly_dict['sequence'] = assembled_sequence
+                assembly_dict['features'] = feature_list
+                assembly_dict['sources'] = source_list
+
+                intermediate_assemblies.append(assembly_dict)
+
+        # In plasmids_only=False: all_simple_paths, iterate over all combinations of nodes
+        # todo: write this
+
+        # --- Final digestion --- #
+
+        # Omit assemblies that still possess restriction sites for enzymes in restriction_enzyme_list
+        complete_assemblies = list()
+
+        for assembly in intermediate_assemblies:
+            rxn_site_found = False
+
+            for enzyme in self.restriction_enzyme_list:
+                if len(enzyme.compsite.findall(assembly['sequence'])) > 0:
+                    rxn_site_found = True
+
+            if rxn_site_found is True:
+                continue
+            else:
+                complete_assemblies.append(assembly)
+
+        # --- Raise exceptions if something went wrong --- #
+
+        # Plasmid specific exceptions
+        if len(complete_assemblies) > 1 and plasmids_only:
+            raise AssemblyException('This assembly produces more than one plasmid product. Check your input sequences.')
+
+        if len(complete_assemblies) == 0 and plasmids_only:
+            raise AssemblyException('This assembly does not produce any complete products. Check your input sequences.')
+
+        # --- Dump assembly and things into a new Plasmid --- #
+
+        if plasmids_only:
+
+            final_assembly_product = complete_assemblies[0]
+
+            # Find features that actually exist in Plasmid
+            plasmid_feature_set = set()
+            for feature in final_assembly_product['features']:
+                regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
+                if len(re.findall(regex_pattern, final_assembly_product['sequence'])) > 0:
+                    plasmid_feature_set.add(feature)
+
+            return Plasmid(final_assembly_product['sequence'], entity_id=new_id, name=new_id, features=list(plasmid_feature_set),
+                           description=new_description, source=final_assembly_product['sources'])
+
+# todo: convert to function
+class HomologyAssembly(CloningReaction):
+    """
+    Perform assemblies that rely on homology complementation methods.
+
+    * Gibson
+    * SLIC
+    * CPEC/SOE
+    """
+
+    def __init__(self, input_dna_list):
+        super().__init__(input_dna_list, restriction_enzyme_list=None)
+
+    # --- Setters --- #
+
+    @property
+    def restriction_enzyme_list(self):
+        return self._restriction_enzyme_list
+
+    @restriction_enzyme_list.setter
+    def restriction_enzyme_list(self, input_enzyme_list):
+        self._restriction_enzyme_list = input_enzyme_list
+
+    # --- Methods --- #
+
+    # todo: finish writing this with block find ping pong method
+    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description='New assembly'):
+        """
+        We're going to use built-in difflib to find overlaps between sequences
+        :return:
+        """
+        # --- Assemble Graph --- #
+
+        directed_graph = networkx.DiGraph()
+
+        for part_1, part_2 in combinations(self.input_dna_list, 2):
+            print(part_1)
+            print(part_2)
+            matcher = SequenceMatcher(None, part_1.sequence, part_2.sequence)
+
+            # Compare 5'/3' overlaps
+            matches = matcher.find_longest_match(0, 100, len(part_2.sequence) - 100, len(part_2.sequence))
+            for match in matches:
+                print(match)
 
 
-class DNAException(Exception):
+class ReactionDefinitionException(Exception):
     pass
 
 
-class EnzymeException(Exception):
+class AssemblyException(Exception):
     pass
