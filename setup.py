@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 # encoding: utf-8
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+from setuptools import setup, find_packages
 
 with open('README.md') as file:
     readme = file.read()
@@ -28,9 +25,7 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
     ],
-    packages=[
-        'dnassembly',
-    ],
+    packages=find_packages(),
     install_requires=[
     ],
     entry_points={
