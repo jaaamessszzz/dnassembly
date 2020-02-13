@@ -10,6 +10,7 @@ def pairwise(iterable):
     next(b, None)
     return zip(a, b)
 
+
 def cycle_in_frames(iterable, frame=3):
     """
     Cycle through iterable and yield all possible frames of size frame. Treats iterable as a circular sequence.
@@ -23,6 +24,7 @@ def cycle_in_frames(iterable, frame=3):
         if cycle_count < len(iterable):
             yield cycle_iterable[cycle_count: cycle_count + frame]
             cycle_count += 1
+
 
 def reverse_complement(seq):
     "Get reverse complement of DNA sequence"

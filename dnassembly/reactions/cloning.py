@@ -1,7 +1,8 @@
 #! /usr/bin/env python3
 
 import re
-from itertools import combinations
+from pprint import pprint
+from itertools import combinations, product
 from difflib import SequenceMatcher
 from collections import OrderedDict
 
@@ -371,78 +372,67 @@ class StickyEndAssembly(CloningReaction):
 
         # --- Assemble Graph --- #
 
-        directed_graph = networkx.DiGraph()
+        directed_graph = networkx.MultiDiGraph()
 
         # Add nodes and edges for each part in digest_pool
         for part in self.input_dna_list:
-
-            # Find indicies of sticky ends, continue if both ends to not have sticky ends
-            # We will handle this later, this step will mess things up for linear assemblies
 
             sticky_match_l = part.overhang_5
             sticky_match_r = part.overhang_3
 
             # Process sticky ends into nodes
-
-            # (5, TATG) as nodes, where 5 is the overhang strand
-            # complementary sticky ends are always formed by the same strand
-            # 5'/3' end of DNA is encoded by direction of edges
-
-            if sticky_match_l is None:
-                l_node = 'Blunt_Left'
-            else:
-                l_node = (part.sequence[:sticky_match_l[0]], sticky_match_l[1])
-
-            if sticky_match_r is None:
-                r_node = 'Blunt_Right'
-            else:
-                r_node = (part.sequence[-sticky_match_r[0]:], sticky_match_r[1])  # (overhang_sequence, overhang_strand)
+            # (overhang_sequence, overhang_strand)
+            l_node = 'Blunt_Left' if sticky_match_l is None else (part.sequence[:sticky_match_l[0]], sticky_match_l[1])
+            r_node = 'Blunt_Right' if sticky_match_r is None else (part.sequence[-sticky_match_r[0]:], sticky_match_r[1])
 
             directed_graph.add_node(l_node)
             directed_graph.add_node(r_node)
 
             # Add directed edge between nodes (5' -> 3') and add Part as edge attribute
-            directed_graph.add_edge(l_node, r_node, {'part': part})
+            directed_graph.add_edge(l_node, r_node, part=part)
 
         # --- Traverse Graph --- #
 
         # First: simple_cycles
         graph_cycles = networkx.algorithms.cycles.simple_cycles(directed_graph)
-
-        # Store already processed cycles as set(nodes)
         processed_cycles = list()
-        intermediate_assemblies = list()
+        all_possible_assemblies = list()
 
         for cycle in graph_cycles:
 
             if not any([set(cycle) == processed_cycle for processed_cycle in processed_cycles]):
-                assembly_dict = dict()
-
-                feature_list = list()
-                source_list = list()
-                assembled_sequence = ''
+                sequences_list = list()
 
                 # Iterate through edges and get sequence up to 3' sticky end
                 for node_l, node_r in pairwise(cycle):
-                    current_part = directed_graph[node_l][node_r]['part']
-                    right_sticky_end = 0 if current_part.overhang_3 is None else current_part.overhang_3[0]
-                    assembled_sequence = assembled_sequence + current_part.sequence[:-right_sticky_end]
-                    if current_part.features:
-                        feature_list = feature_list + current_part.features
-                    source_list.append(current_part.source)
+                    current_edge = directed_graph[node_l][node_r]
+                    new_sequence_list = [current_edge[index]['part'] for index, edge in enumerate(current_edge)]
+                    sequences_list.append(new_sequence_list)
 
                 # Get last part of cycle
-                last_part = directed_graph[cycle[-1]][cycle[0]]['part']
-                right_sticky_end = 0 if last_part.overhang_3 is None else last_part.overhang_3[0]
-                assembled_sequence = assembled_sequence + last_part.sequence[:-right_sticky_end]
-                if last_part.features:
-                    feature_list = feature_list + last_part.features
-                source_list.append(last_part.source)
+                last_edge = directed_graph[cycle[-1]][cycle[0]]
+                new_sequence_list = [last_edge[index]['part'] for index, edge in enumerate(last_edge)]
+                sequences_list.append(new_sequence_list)
+                all_possible_assemblies += product(*sequences_list)
 
-                assembly_dict['sequence'] = assembled_sequence
-                assembly_dict['features'] = feature_list
-                assembly_dict['sources'] = source_list
+        # Actually do assemblies
+        intermediate_assemblies = list()
+        for assembly in all_possible_assemblies:
+            assembly_dict = dict()
+            assembly_dict['sequence'] = ''
+            assembly_dict['features'] = list()
+            assembly_dict['sources'] = list()
+            assembly_dict['description'] = list()
+            for part in assembly:
+                right_sticky_end = part.overhang_3[0]
+                assembly_dict['sequence'] += part.sequence[:-right_sticky_end]
+                if part.features:
+                    assembly_dict['features'] += part.features
+                if part.description:
+                    assembly_dict['description'].append(part.description)
+                assembly_dict['sources'].append(part.source)
 
+            if assembly_dict['sequence'] != '':
                 intermediate_assemblies.append(assembly_dict)
 
         # In plasmids_only=False: all_simple_paths, iterate over all combinations of nodes
@@ -490,6 +480,7 @@ class StickyEndAssembly(CloningReaction):
             return Plasmid(final_assembly_product['sequence'], entity_id=new_id, name=new_id, features=list(plasmid_feature_set),
                            description=new_description, source=final_assembly_product['sources'])
 
+
 # todo: convert to function
 class HomologyAssembly(CloningReaction):
     """
@@ -515,26 +506,144 @@ class HomologyAssembly(CloningReaction):
 
     # --- Methods --- #
 
-    # todo: finish writing this with block find ping pong method
     def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description='New assembly'):
         """
-        We're going to use built-in difflib to find overlaps between sequences
+        We're going to use our knowledge of how homology-directed assembly works to take a few short-cuts...
+        Nodes are sequences and edges are homology overlaps
         :return:
         """
+
+        homology_overlap = 6
+
         # --- Assemble Graph --- #
 
-        directed_graph = networkx.DiGraph()
+        directed_graph = networkx.MultiDiGraph()
 
         for part_1, part_2 in combinations(self.input_dna_list, 2):
+
             print(part_1)
             print(part_2)
-            matcher = SequenceMatcher(None, part_1.sequence, part_2.sequence)
 
-            # Compare 5'/3' overlaps
-            matches = matcher.find_longest_match(0, 100, len(part_2.sequence) - 100, len(part_2.sequence))
-            for match in matches:
-                print(match)
+            # Get possible part_1 3' overlap with part_2 5'
+            part_1_right = part_1.sequence[-homology_overlap:]
+            re_pattern = re.compile(f'(?={part_1_right})')
+            for match in re_pattern.finditer(part_2.sequence):
 
+                overlap_length = match.start() + len(part_1_right)
+                print(part_2.sequence[:overlap_length], part_1.sequence[-overlap_length:])
+                if part_2.sequence[:overlap_length] == part_1.sequence[-overlap_length:]:
+                    print('Overlap found, adding nodes and edges to graph.')
+                    overlap_seq = part_1.sequence[-overlap_length:]
+
+                    directed_graph.add_node(part_1)
+                    directed_graph.add_node(part_2)
+                    directed_graph.add_edge(part_1, part_2, overlap=overlap_seq)
+
+            # Get possible part_1 5' overlap with part_2 3'
+            part_1_left = part_1.sequence[:homology_overlap]
+            re_pattern = re.compile(f'(?={part_1_left})')
+            for match in re_pattern.finditer(part_2.sequence):
+                overlap_length = len(part_2.sequence) - match.start()
+                print(part_2.sequence[-overlap_length:], part_1.sequence[:overlap_length])
+                if part_2.sequence[-overlap_length:] == part_1.sequence[:overlap_length]:
+                    print('Overlap found, adding nodes and edges to graph.')
+                    overlap_seq = part_1.sequence[-overlap_length:]
+
+                    directed_graph.add_node(part_1)
+                    directed_graph.add_node(part_2)
+                    directed_graph.add_edge(part_2, part_1, overlap=overlap_seq)
+
+        # --- Traverse Graph --- #
+
+        # First: simple_cycles
+        graph_cycles = networkx.algorithms.cycles.simple_cycles(directed_graph)
+
+        processed_cycles = list()
+        all_possible_assemblies = list()
+
+        for cycle in graph_cycles:
+
+            if not any([set(cycle) == processed_cycle for processed_cycle in processed_cycles]):
+                sequences_list = list()
+
+                # Iterate through nodes
+                for node_l, node_r in pairwise(cycle):
+                    current_edge = directed_graph[node_l][node_r]
+                    new_sequence_list = [current_edge[index]['overlap'] for index, edge in enumerate(current_edge)]
+                    sequences_list.append(new_sequence_list)
+
+                # Get last part of cycle
+                last_edge = directed_graph[cycle[-1]][cycle[0]]
+                new_sequence_list = [last_edge[index]['overlap'] for index, edge in enumerate(last_edge)]
+                sequences_list.append(new_sequence_list)
+                all_possible_assemblies += product(*sequences_list)
+
+        # Actually do assemblies
+        intermediate_assemblies = list()
+        for assembly in all_possible_assemblies:
+            print(assembly)
+            assembly_dict = dict()
+            assembly_dict['sequence'] = ''
+            assembly_dict['features'] = list()
+            assembly_dict['sources'] = list()
+            assembly_dict['description'] = list()
+
+            # Technically it shouldn't be possible for two edges to exist a pair of sequences with homology...
+            # but I wanted to reuse sequence_from_cycles()
+
+            for part_1, part_2 in pairwise(assembly):
+
+                overlap_length = len(directed_graph[part_1][part_2][0]['overlap'])
+                assembly_dict['sequence'] += part_1.sequence[:-overlap_length]
+
+                if part_1.features:
+                    assembly_dict['features'] += part_1.features
+                if part_1.description:
+                    assembly_dict['description'].append(part_1.description)
+                assembly_dict['sources'].append(part_1.source)
+
+            # Get last part
+            first_part = assembly[0]
+            last_part = assembly[-1]
+            overlap_length = len(directed_graph[last_part][first_part][0]['overlap'])
+            assembly_dict['sequence'] += last_part.sequence[:-overlap_length]
+
+            if last_part.features:
+                assembly_dict['features'] += last_part.features
+            if last_part.description:
+                assembly_dict['description'].append(last_part.description)
+            assembly_dict['sources'].append(last_part.source)
+
+            intermediate_assemblies.append(assembly_dict)
+
+        # --- Make complete assemblies --- #
+        """All assemblies are valid since there isn't a digestion step like with sticky-end methods"""
+        complete_assemblies = intermediate_assemblies
+
+        # --- Raise exceptions if something went wrong --- #
+
+        # Plasmid specific exceptions
+        if len(complete_assemblies) > 1 and plasmids_only:
+            raise AssemblyException('This assembly produces more than one plasmid product. Check your input sequences.')
+
+        if len(complete_assemblies) == 0 and plasmids_only:
+            raise AssemblyException('This assembly does not produce any complete products. Check your input sequences.')
+
+        # --- Dump assembly and things into a new Plasmid --- #
+
+        if plasmids_only:
+
+            final_assembly_product = complete_assemblies[0]
+
+            # Find features that actually exist in Plasmid
+            plasmid_feature_set = set()
+            for feature in final_assembly_product['features']:
+                regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
+                if len(re.findall(regex_pattern, final_assembly_product['sequence'])) > 0:
+                    plasmid_feature_set.add(feature)
+
+            return Plasmid(final_assembly_product['sequence'], entity_id=new_id, name=new_id, features=list(plasmid_feature_set),
+                           description=new_description, source=final_assembly_product['sources'])
 
 class ReactionDefinitionException(Exception):
     pass
