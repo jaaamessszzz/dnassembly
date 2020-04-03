@@ -27,6 +27,8 @@ def annotate_moclo(dna, annotate='part'):
     else:
         return Exception("Annotation type must be 'part' or 'cassette'!")
 
+    print(f'Annotating {annotate}...')
+
     rxnsite_f = re.finditer(f'{RxnEnzyme.site}', dna)
     rxnsite_r = re.finditer(f'{reverse_complement(RxnEnzyme.site)}', dna)
 

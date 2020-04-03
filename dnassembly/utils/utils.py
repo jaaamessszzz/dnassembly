@@ -29,3 +29,33 @@ def cycle_in_frames(iterable, frame=3):
 def reverse_complement(seq):
     "Get reverse complement of DNA sequence"
     return ''.join(reversed([dna_basepairs[a] if a in dna_basepairs.keys() else a for a in seq]))
+
+
+# --- Manually implemented b/c Biopython is a mess --- #
+
+# E. coli codon table: http://www.sci.sdsu.edu/~smaloy/MicrobialGenetics/topics/in-vitro-genetics/codon-usage.html
+# Listed in order of frequency
+res_to_codons = {'A': ['GCG', 'GCC', 'GCA', 'GCT'],
+                 'C': ['TGC', 'TGT'],
+                 'D': ['GAT', 'GAC'],
+                 'E': ['GAA', 'GAG'],
+                 'F': ['TTT', 'TTC'],
+                 'G': ['GGC', 'GGT', 'GGG', 'GGA'],
+                 'H': ['CAT', 'CAC'],
+                 'I': ['ATT', 'ATC', 'ATA'],
+                 'K': ['AAA', 'AAG'],
+                 'L': ['CTG', 'TTA', 'TTG', 'CTT', 'CTC', 'CTA'],
+                 'M': ['ATG'],
+                 'N': ['AAC', 'AAT'],
+                 'P': ['CCG', 'CCA', 'CCT', 'CCC'],
+                 'Q': ['CAG', 'CAA'],
+                 'R': ['CGT', 'CGC', 'CGG', 'CGA', 'AGA', 'AGG'],
+                 'S': ['AGC', 'TCT', 'TCC', 'TCG', 'AGT', 'TCA'],
+                 'T': ['ACC', 'ACA', 'ACG', 'ACT'],
+                 'V': ['GTG', 'GTT', 'GTC', 'GTA'],
+                 'W': ['TGG'],
+                 'Y': ['TAT', 'TAC'],
+                 '*': ['TAA', 'TGA', 'TAG'],
+                 }
+
+codon_to_res = {codon: res for res, codons in res_to_codons.items() for codon in codons}
