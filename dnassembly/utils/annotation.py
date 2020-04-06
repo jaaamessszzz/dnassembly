@@ -27,10 +27,8 @@ def annotate_moclo(dna, annotate='part'):
     else:
         return Exception("Annotation type must be 'part' or 'cassette'!")
 
-    print(f'Annotating {annotate}...')
-
-    rxnsite_f = re.finditer(f'{RxnEnzyme.site}', dna)
-    rxnsite_r = re.finditer(f'{reverse_complement(RxnEnzyme.site)}', dna)
+    rxnsite_f = re.finditer(f'{RxnEnzyme.site}', dna.upper())
+    rxnsite_r = re.finditer(f'{reverse_complement(RxnEnzyme.site)}', dna.upper())
 
     match_f = 0
     match_r = 0
@@ -48,23 +46,22 @@ def annotate_moclo(dna, annotate='part'):
     if match_r != 1 or match_f != 1:
         return False
 
+    forward_part = annotation_f.get(stick_end_f.upper())
+    reverse_part = annotation_r.get(stick_end_r.upper())
+
+    if forward_part is None or reverse_part is None:
+        return False
+
     current_part = OrderLinkedList.head
-    print(current_part.part)
 
     part_end = False
     add_parts = False
     part_list = []
 
     while part_end is False:
-        forward_part = annotation_f.get(stick_end_f)
-        reverse_part = annotation_r.get(stick_end_r)
 
         if current_part.part == forward_part:
             add_parts = True
-
-        print(add_parts)
-        print(current_part.part, forward_part)
-        print(current_part.part, reverse_part)
 
         if current_part.part == reverse_part and add_parts:
             part_end = True
@@ -73,6 +70,8 @@ def annotate_moclo(dna, annotate='part'):
             part_list.append(current_part.part)
 
         current_part = current_part.next
-        print(current_part.part)
+
+    if len(part_list) == len(OrderLinkedList.parts):
+        return False
 
     return part_list
