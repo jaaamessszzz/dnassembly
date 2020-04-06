@@ -149,7 +149,7 @@ class ModularCloning(GoldenGate):
 
 # --- MoClo Related Functions --- #
 
-def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, remove_bsai=True, remove_bsmbi=True, remove_noti=True,):
+def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bsai=True, remove_bsmbi=True, remove_noti=True):
     """
     Create a MoClo compatible part from an arbitrary sequence
     Checks for BsaI/BsmBI/NotI restriction sites
@@ -172,7 +172,6 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
         if len(sequence) % 3 != 0:
             raise Exception('Part 3 coding sequence definitions must be in frame!')
 
-    # todo: generalize additions for parts
     # "GG" is appended to any Part 3 sequence to abide by the GS linker definition in the YTK
     standardize_5 = {'3a': 'GG',
                      '3b': 'GG',
@@ -188,9 +187,33 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     standardized_5 = standardize_5[part_5] if (part_5 in standardize_5.keys() and standardize) else ""
     standardized_3 = standardize_3[part_3] if (part_3 in standardize_3.keys() and standardize) else ""
 
-    left_arm = f'GCATCGTCTCATCGGTCTCA{overhang_5[part_5]}{standardized_5}'
-    right_arm = f'{standardized_3}{overhang_3[part_3]}TGAGACCTGAGACGGCAT'
+    prefix = f'GCATCGTCTCATCGGTCTCA{overhang_5[part_5]}{standardized_5}'
+    suffix = f'{standardized_3}{overhang_3[part_3]}TGAGACCTGAGACGGCAT'
 
+    # Create regex pattern for restriction sites
+    rxn_regex = []
+    if remove_bsai:
+        rxn_regex += ['GGTCTC', 'GAGACC']
+    if remove_bsmbi:
+        rxn_regex += ['CGTCTC', 'GAGACG']
+    if remove_noti:
+        rxn_regex += ['GCGGCCGC', 'CGCCGGCG']
+
+    regex_pattern = f"?=({'|'.join(rxn_regex)})"
+
+    if create_instructions:
+        create_assembly_instructions(sequence, prefix, suffix, part_5, part_3, remove_bsai=remove_bsai, remove_bsmbi=remove_bsmbi, remove_noti=remove_noti)
+    else:
+        final_sequence = prefix + sequence + suffix
+        sequence_DNA = Part(final_sequence, description=description)
+        if len(re.findall(regex_pattern, sequence)) > 0:
+            raise Exception('There are BsaI/BsmBI/NotI restriction sites it your part definition! Please remove them.')
+        return sequence_DNA
+
+
+# todo: figure this out...
+def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='', remove_bsai=True, remove_bsmbi=True, remove_noti=True):
+    """Create assembly instructions for a part"""
     # Create regex pattern for restriction sites
     rxn_regex = []
     if remove_bsai:
@@ -210,66 +233,100 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     sequence_codons = [sequence[codon:codon + 3].upper() for codon in range(0, len(sequence), 3)]
 
     # Track codons
-    original_codon = {}
-    remaining_codons = {}
+    codon_substitutions = {}
 
-    # Identify codons that need to be changed
-    # Max of two consecutive codons needed to guarantee removal of rxn site
-    for match in match_results:
-
-        codon_index = match // 3
+    def make_codon_substitution(sequence_index, bad_codons=None):
+        """Substitute a codon in sequence_codons"""
+        codon_index = sequence_index // 3
         left_codon_slice = codon_index - 2 if codon_index - 2 >= 0 else 0
         right_codon_slice = codon_index + 2 if codon_index + 2 < len(sequence_codons) else len(sequence_codons)
         local_sequence_codons = sequence_codons[left_codon_slice:right_codon_slice]
 
-        substitution_successful = False
+        # Check if a previous substitution fixed this already, otherwise fix
+        if len(re.findall(regex_pattern, ''.join(local_sequence_codons))) > 0:
 
-        while not substitution_successful:
+            substitution_successful = False
 
-            for index_step in range(2):
+            for index_step in range(3):
                 current_codon_index = codon_index + index_step
                 codon_to_swap = sequence_codons[current_codon_index]
-                codons_to_try = [codon for codon in codon_to_res[res_to_codons[codon_to_swap]] if codon != codon_to_swap]
 
-            # Swap out a single codon per match
-            for codon in codons_to_try:
-                test_local_sequence = local_sequence_codons
-                test_local_sequence[2] = codon
+                codons_to_exclude = [codon_to_swap]
+                if bad_codons is not None and type(bad_codons) == list:
+                    codons_to_exclude += bad_codons
+                codons_to_try = [codon for codon in codon_to_res[res_to_codons[codon_to_swap]] if
+                                 codon not in codons_to_exclude]
 
-                local_seqeunce = ''.join(test_local_sequence)
-                local_matches = re.findall(regex_pattern, local_seqeunce)
-
-                if len(local_matches) == 0:
-                    substitution_successful = True
-                    break
-
-            # Move to next codon
-            # todo: condense this repeat code...
-            if not substitution_successful:
-                codon_index += 1
-                codon_to_swap = sequence_codons[codon_index]
-                codons_to_try = [codon for codon in codon_to_res[res_to_codons[codon_to_swap]] if codon != codon_to_swap]
-
+                # Swap out a single codon per match
                 for codon in codons_to_try:
                     test_local_sequence = local_sequence_codons
-                    test_local_sequence[3] = codon
-
+                    test_local_sequence[2 + index_step] = codon
                     local_seqeunce = ''.join(test_local_sequence)
                     local_matches = re.findall(regex_pattern, local_seqeunce)
 
                     if len(local_matches) == 0:
+                        codon_substitutions[current_codon_index] = {}
+                        codon_substitutions[current_codon_index]['original'] = sequence_codons[current_codon_index]
+                        codon_substitutions[current_codon_index]['new'] = codon
+
+                        # Make substitution
+                        sequence_codons[current_codon_index] = codon
                         substitution_successful = True
                         break
 
-        # Keep track of changed codons
-        original_codon[codon_index] = codon_to_swap
+                if substitution_successful:
+                    break
 
-    # If restriction sites are too close to each other, make a ligation block (up to 52bp + 4 nucleotide overhangs)
+            if not substitution_successful:
+                raise Exception("A substitution wasn't made somehow...")
+
+    # Identify codons that need to be changed
+    # Max of two consecutive codons needed to guarantee removal of rxn site
+    for match in match_results:
+        make_codon_substitution(match)
+
+    # todo: check for potential restriction sites formed when left/right arms are added to seqeunce
+
+    # Pick overhang sequences
+    overhang_5 = {v:k for k,v in PartOrder.bsai_annotation_f.items()}
+    overhang_3 = {v:k for k,v in PartOrder.bsai_annotation_r.items()}
+
+    codon_indicies = sorted(list(codon_substitutions.keys()))
+    used_overhang_sequences = [overhang_5[part_5], overhang_3[part_3]]
+    overhang_start_indicies = []
+
+    def try_overhangs(sequence_index):
+        """Choose one of two possible overhangs"""
+        if sequence[sequence_index:sequence_index + 4] not in used_overhang_sequences:
+            used_overhang_sequences.append(sequence[sequence_index:sequence_index + 4])
+            overhang_start_indicies.append(sequence_index)
+        elif sequence[sequence_index - 1:sequence_index + 3] not in used_overhang_sequences:
+            used_overhang_sequences.append(sequence[sequence_index - 1:sequence_index + 3])
+            overhang_start_indicies.append(sequence_index - 1)
+        else:
+            make_codon_substitution(sequence_index, bad_codons=[codon_substitutions[sequence_index // 3]['original'],
+                                                                codon_substitutions[sequence_index // 3]['new']])
+            try_overhangs(sequence_index)  # This is sketch...
+
+    # Assign codon overhangs, bad overhangs will be ignored in block generation step
+    for count, codon_index in enumerate(codon_indicies):
+        # Edge case: first codon in sequence, ligation block if next substitution is close else gBlock
+        if codon_index == 0:
+            overhang_start_indicies.append(0)
+        # Edge case: last codon in sequence, ligation block if previous substitution is close else gBlock
+        if codon_index == len(sequence_codons):
+            overhang_start_indicies.append(len(sequence - 4))
+
+        sequence_index = codon_index * 3
+        try_overhangs(sequence_index)
+
+    """
+    If len(codon_substitutions) > 3, just order a gBlock
+    Default to PCR
+    If substitutions were made <100 nt apart, make ligation blocks
+    """
 
     # todo: get new potentially altered sequence
-
-    sequence_DNA = Part(sequence, description=description)
-    return sequence_DNA
 
 
 class AssemblyTypeException(Exception):
