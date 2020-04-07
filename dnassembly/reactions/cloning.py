@@ -1,9 +1,7 @@
 #! /usr/bin/env python3
 
 import re
-from pprint import pprint
 from itertools import combinations, product
-from difflib import SequenceMatcher
 from collections import OrderedDict
 
 import networkx
