@@ -2,6 +2,8 @@
 
 import re
 
+from .part import Part
+
 class DNA(object):
     """
     Class for holding information related to any input double-stranded DNA sequence used for assembly.
@@ -140,7 +142,7 @@ class DNA(object):
         return cut_index_5, cut_index_3, strand
 
 
-class Feature(DNA):
+class Feature(Part):
     """
     A unique sequence of DNA that performs some biological function of interest
     """
