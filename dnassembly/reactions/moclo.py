@@ -5,6 +5,7 @@ from enum import Enum
 
 from Bio.Restriction import BsaI, BsmBI
 
+from ..design import create_amplifiction_primers
 from ..dna import Part
 from .goldengate import GoldenGate
 from ..utils.utils import res_to_codons, codon_to_res
@@ -164,6 +165,7 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     :param description: part description
     :returns Part object for the input sequence with the specified overhangs
     """
+    print(part_3, part_5)
     if part_5 not in PartOrder.parts or part_3 not in PartOrder.parts:
         raise Exception('Invalid part definitions were passed!')
 
@@ -173,11 +175,11 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
             raise Exception('Part 3 coding sequence definitions must be in frame!')
 
     # "GG" is appended to any Part 3 sequence to abide by the GS linker definition in the YTK
-    standardize_5 = {'3a': 'GG',
+    standardize_3 = {'3a': 'GG',
                      '3b': 'GG',
                      }
 
-    standardize_3 = {'4a': 'TAA',
+    standardize_5 = {'4a': 'TAA',
                      }
 
     # Add part overhangs
@@ -201,14 +203,19 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
 
     regex_pattern = f"?=({'|'.join(rxn_regex)})"
 
+    # todo: implement this... just return part insert and primers for the time being
     if create_instructions:
         create_assembly_instructions(sequence, prefix, suffix, part_5, part_3, remove_bsai=remove_bsai, remove_bsmbi=remove_bsmbi, remove_noti=remove_noti)
     else:
         final_sequence = prefix + sequence + suffix
         sequence_DNA = Part(final_sequence, description=description)
-        if len(re.findall(regex_pattern, sequence)) > 0:
+        if len(re.findall(re.escape(regex_pattern), sequence)) > 0:
             raise Exception('There are BsaI/BsmBI/NotI restriction sites it your part definition! Please remove them.')
-        return sequence_DNA
+
+        # Create primers, TEMPORARY UNTIL create_instructions IS IMPLEMENTED!!!
+        primers = create_amplifiction_primers(sequence, prefix=prefix, suffix=suffix)
+
+        return sequence_DNA, primers
 
 
 # todo: figure this out...
@@ -226,7 +233,7 @@ def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='',
     regex_pattern = f"?=({'|'.join(rxn_regex)})"
 
     # Identify potential restriction sites in left_arm+sequence+right_arm
-    matches = re.finditer(regex_pattern, sequence)
+    matches = re.finditer(re.escape(regex_pattern), sequence)
     match_results = [match.start() for match in matches]
 
     # separate sequence into codons
