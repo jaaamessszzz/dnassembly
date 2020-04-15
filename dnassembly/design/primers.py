@@ -56,7 +56,7 @@ def generate_primer(sequence, prefix='', target_tm=60, primer=50, Na=50, K=None,
 
     target_primer = None
 
-    for primer_length in range(len(sequence) + 1):
+    for primer_length in range(1, len(sequence) + 1):
         primer_TM = mt.Tm_NN(Seq(sequence[:primer_length]),
                              nn_table=mt.DNA_NN2,
                              dnac1=primer / 2,  # nM Primers / 2
