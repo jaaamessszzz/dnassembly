@@ -349,7 +349,7 @@ class StickyEndAssembly(CloningReaction):
     def __init__(self, input_dna_list, restriction_enzyme_list):
         super().__init__(input_dna_list, restriction_enzyme_list)
 
-    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description='New assembly'):
+    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description=None):
         """
         Performs an assembly provided a pool of Parts.
 
@@ -474,6 +474,9 @@ class StickyEndAssembly(CloningReaction):
                 regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
                 if len(re.findall(regex_pattern, final_assembly_product['sequence'])) > 0:
                     plasmid_feature_set.add(feature)
+            # Update description
+            if new_description is None:
+                new_description = '|'.join(final_assembly_product['description'])
 
             return Plasmid(final_assembly_product['sequence'], entity_id=new_id, name=new_id, features=list(plasmid_feature_set),
                            description=new_description, source=final_assembly_product['sources'])
@@ -504,7 +507,7 @@ class HomologyAssembly(CloningReaction):
 
     # --- Methods --- #
 
-    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description='New assembly'):
+    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description=None):
         """
         We're going to use our knowledge of how homology-directed assembly works to take a few short-cuts...
         Nodes are sequences and edges are homology overlaps
@@ -639,6 +642,9 @@ class HomologyAssembly(CloningReaction):
                 regex_pattern = f'{feature.sequence}|{feature.reverse_complement()}'
                 if len(re.findall(regex_pattern, final_assembly_product['sequence'])) > 0:
                     plasmid_feature_set.add(feature)
+            # Update description
+            if new_description is None:
+                new_description = '|'.join(final_assembly_product['description'])
 
             return Plasmid(final_assembly_product['sequence'], entity_id=new_id, name=new_id, features=list(plasmid_feature_set),
                            description=new_description, source=final_assembly_product['sources'])
