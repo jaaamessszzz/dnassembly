@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 from itertools import tee
 
-dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C', 'a': 't', 't': 'a', 'g': 'c', 'c': 'g'}
 
 # Thank you itertools cookbook!
 def pairwise(iterable):
@@ -28,7 +28,7 @@ def cycle_in_frames(iterable, frame=3):
 
 def reverse_complement(seq):
     "Get reverse complement of DNA sequence"
-    return ''.join(reversed([dna_basepairs[a] if a in dna_basepairs.keys() else a for a in seq]))
+    return ''.join(reversed([dna_basepairs[a] for a in seq]))
 
 
 # --- Manually implemented b/c Biopython is a mess --- #

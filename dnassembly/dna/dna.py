@@ -34,8 +34,9 @@ class DNA(object):
         self.feature_map = None  # Populated by map_features method
 
     def __repr__(self):
-        return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
-               f'{self.sequence[:25]} ... {self.sequence[-25:]}\n'
+        return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tLength: {len(self.sequence)}\n' \
+               f'Description: {self.description[:50]}{"..." if len(self.sequence) > 50 else ""}\n' \
+               f'{self.sequence[:60]}{"..." if len(self.sequence) > 60 else ""}\n'
 
     # --- Property Setters --- #
 

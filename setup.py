@@ -12,16 +12,22 @@ with open('README.md') as file:
 # Setup
 setup(
     name='dnassembly',
-    version='0.1',
+    version='0.1.5',
     author='James Lucas',
     author_email='james.lucas@berkeley.edu',
-    description='',
+    description='Digest and assemble DNA',
     long_description=readme,
     url='https://github.com/jaaamessszzz/DNAssembly',
     keywords=[
         'DNA',
         'assembly',
-        'cloning'
+        'cloning',
+        'plasmid',
+        'digest',
+        'restriction',
+        'enzyme',
+        'molecular',
+        'biology'
     ],
     classifiers=[
         'Intended Audience :: Developers',
@@ -32,6 +38,8 @@ setup(
         'dnassembly',
     ],
     install_requires=[
+        'networkx',
+        'biopython'
     ],
     entry_points={
         'console_scripts': [
