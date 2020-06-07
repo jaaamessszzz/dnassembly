@@ -165,12 +165,11 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     :param description: part description
     :returns Part object for the input sequence with the specified overhangs
     """
-    print(part_3, part_5)
     if part_5 not in PartOrder.parts or part_3 not in PartOrder.parts:
         raise Exception('Invalid part definitions were passed!')
 
     # Make sure Part 3 definitions are in frame
-    if '3' in part_5 and '3' in part_3:
+    if '3' in part_5 and '3' in part_3 and not create_instructions:
         if len(sequence) % 3 != 0:
             raise Exception('Part 3 coding sequence definitions must be in frame!')
 
@@ -203,19 +202,19 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
 
     regex_pattern = f"?=({'|'.join(rxn_regex)})"
 
-    # todo: implement this... just return part insert and primers for the time being
-    if create_instructions:
-        create_assembly_instructions(sequence, prefix, suffix, part_5, part_3, remove_bsai=remove_bsai, remove_bsmbi=remove_bsmbi, remove_noti=remove_noti)
-    else:
-        final_sequence = prefix + sequence + suffix
-        sequence_DNA = Part(final_sequence, description=description)
-        if len(re.findall(re.escape(regex_pattern), sequence)) > 0:
-            raise Exception('There are BsaI/BsmBI/NotI restriction sites it your part definition! Please remove them.')
+    # # todo: implement this... just return part insert and primers for the time being
+    # if create_instructions:
+    #     create_assembly_instructions(sequence, prefix, suffix, part_5, part_3, remove_bsai=remove_bsai, remove_bsmbi=remove_bsmbi, remove_noti=remove_noti)
+    # else:
+    final_sequence = prefix + sequence + suffix
+    sequence_DNA = Part(final_sequence, description=description)
+    if len(re.findall(re.escape(regex_pattern), sequence)) > 0:
+        raise Exception('There are BsaI/BsmBI/NotI restriction sites it your part definition! Please remove them.')
 
-        # Create primers, TEMPORARY UNTIL create_instructions IS IMPLEMENTED!!!
-        primers = create_amplifiction_primers(sequence, prefix=prefix, suffix=suffix)
-
-        return sequence_DNA, primers
+    # Create primers, TEMPORARY UNTIL create_instructions IS IMPLEMENTED!!!
+    primers = create_amplifiction_primers(sequence, prefix=prefix, suffix=suffix)
+    print(primers)
+    return sequence_DNA, primers
 
 
 # todo: figure this out...
@@ -327,13 +326,18 @@ def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='',
         sequence_index = codon_index * 3
         try_overhangs(sequence_index)
 
-    """
-    If len(codon_substitutions) > 3, just order a gBlock
-    Default to PCR
-    If substitutions were made <100 nt apart, make ligation blocks
-    """
+    # Create instructions and Sequences
+    if len(codon_substitutions) == 0:
+        part_method = 'PCR'
+        primers = create_amplifiction_primers(sequence, prefix=prefix, suffix=suffix)
+        return sequence, primers, part_method
 
-    # todo: get new potentially altered sequence
+    elif len(codon_substitutions) == 1:
+        part_method = 'PCR'
+        return sequence, (prefix, suffix), part_method
+    else:
+        part_method = 'gBlock'
+        return sequence, (prefix, suffix), part_method
 
 
 class AssemblyTypeException(Exception):
