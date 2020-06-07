@@ -28,7 +28,7 @@ def cycle_in_frames(iterable, frame=3):
 
 def reverse_complement(seq):
     "Get reverse complement of DNA sequence"
-    return ''.join(reversed([dna_basepairs[a] for a in seq]))
+    return ''.join(reversed([dna_basepairs[a] if a in dna_basepairs.keys() else a for a in seq]))
 
 
 # --- Manually implemented b/c Biopython is a mess --- #
