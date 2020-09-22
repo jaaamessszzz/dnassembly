@@ -176,16 +176,26 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     # "GG" is appended to any Part 3 sequence to abide by the GS linker definition in the YTK
     standardize_3 = {'3a': 'GG',
                      '3b': 'GG',
+                     '4a': 'TAACTCGAG'
                      }
 
-    standardize_5 = {'4a': 'TAA',
-                     }
+    standardize_5 = {'4a': 'TAACTCGAG'}
 
     # Add part overhangs
     overhang_5 = {v:k for k,v in PartOrder.bsai_annotation_f.items()}
     overhang_3 = {v:k for k,v in PartOrder.bsai_annotation_r.items()}
 
-    standardized_5 = standardize_5[part_5] if (part_5 in standardize_5.keys() and standardize) else ""
+    # Get standardized 5'/3' sequence
+    # todo: streamline this...
+    if part_5 in standardize_5.keys() and standardize:
+        if part_5 == '4a':
+            # Special case for Part 4
+            standardized_5 = standardize_5[part_5] if part_3 == '4b' else ""
+        else:
+            standardized_5 = standardize_5[part_5]
+    else:
+        standardized_5 = ""
+
     standardized_3 = standardize_3[part_3] if (part_3 in standardize_3.keys() and standardize) else ""
 
     prefix = f'GCATCGTCTCATCGGTCTCA{overhang_5[part_5]}{standardized_5}'
