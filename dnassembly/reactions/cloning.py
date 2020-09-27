@@ -349,7 +349,7 @@ class StickyEndAssembly(CloningReaction):
     def __init__(self, input_dna_list, restriction_enzyme_list):
         super().__init__(input_dna_list, restriction_enzyme_list)
 
-    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description=None):
+    def perform_assembly(self, plasmids_only=True, new_id='New_assembly', new_description=None, final_digestion=True):
         """
         Performs an assembly provided a pool of Parts.
 
@@ -372,6 +372,8 @@ class StickyEndAssembly(CloningReaction):
 
         directed_graph = networkx.MultiDiGraph()
 
+        # todo: get reverse complement of parts and add to assembly, not all provided sequences will be coding strand
+        # todo: keep track of which parDts were reversecomplement() in final product, return product with least
         # Add nodes and edges for each part in digest_pool
         for part in self.input_dna_list:
 
@@ -436,22 +438,15 @@ class StickyEndAssembly(CloningReaction):
         # In plasmids_only=False: all_simple_paths, iterate over all combinations of nodes
         # todo: write this
 
-        # --- Final digestion --- #
+        # --- Final digestion (optional) --- #
 
-        # Omit assemblies that still possess restriction sites for enzymes in restriction_enzyme_list
+        # Omit assemblies that still possess restriction sites for enzymes in restriction_enzyme_list (optional)
         complete_assemblies = list()
 
         for assembly in intermediate_assemblies:
-            rxn_site_found = False
-
-            for enzyme in self.restriction_enzyme_list:
-                if len(enzyme.compsite.findall(assembly['sequence'])) > 0:
-                    rxn_site_found = True
-
-            if rxn_site_found is True:
+            if final_digestion and any([len(enzyme.compsite.findall(assembly['sequence'])) > 0 for enzyme in self.restriction_enzyme_list]):
                 continue
-            else:
-                complete_assemblies.append(assembly)
+            complete_assemblies.append(assembly)
 
         # --- Raise exceptions if something went wrong --- #
 
