@@ -3,7 +3,6 @@
 import re
 
 from Bio.Seq import Seq
-from Bio.Alphabet import generic_dna
 from Bio.SeqRecord import SeqRecord
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 
@@ -99,7 +98,7 @@ def convert_dnassembly_to_biopython(dna_entity):
     :param dna_entity: DNAssembly DNA entity
     :return:
     """
-    seq = Seq(dna_entity.sequence, generic_dna)
+    seq = Seq(dna_entity.sequence)
 
     # Create feature_map if dna_entity has not been mapped
     if dna_entity.feature_map is None:
