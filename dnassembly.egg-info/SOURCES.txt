@@ -1,0 +1,11 @@
+README.md
+setup.py
+dnassembly/__init__.py
+dnassembly/transformations.py
+dnassembly.egg-info/PKG-INFO
+dnassembly.egg-info/SOURCES.txt
+dnassembly.egg-info/dependency_links.txt
+dnassembly.egg-info/entry_points.txt
+dnassembly.egg-info/not-zip-safe
+dnassembly.egg-info/requires.txt
+dnassembly.egg-info/top_level.txt

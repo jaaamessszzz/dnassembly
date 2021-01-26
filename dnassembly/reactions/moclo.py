@@ -3,7 +3,7 @@
 import re
 from enum import Enum
 
-from Bio.Restriction import BsaI, BsmBI
+from Bio.Restriction import BbsI, BsmBI
 
 from ..design import create_amplifiction_primers
 from ..dna import Part
@@ -89,7 +89,7 @@ class PartOrder(CircularOrder):
                          'TCAA': '7'
                          }
 
-    parts = [part for part in bsai_annotation_f.values()]
+    parts = [part for part in bbsi_annotation_f.values()]
 
     def __init__(self):
         super(PartOrder, self).__init__()
@@ -152,7 +152,7 @@ class ModularCloning(GoldenGate):
 
 # --- MoClo Related Functions --- #
 
-def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bsai=True, remove_bsmbi=True, remove_noti=True):
+def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bbsi=True, remove_bsmbi=True, remove_noti=True):
     """
     Create a MoClo compatible part from an arbitrary sequence
     Checks for BbsI/BsmBI restriction sites
@@ -240,7 +240,7 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
 
 
 # Work in progress - doesn't quite work for now
-def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='', remove_bsai=True, remove_bsmbi=True, remove_noti=True):
+def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='', remove_bbsi=True, remove_bsmbi=True, remove_noti=True):
     """Create assembly instructions for a part"""
     # Create regex pattern for restriction sites
     rxn_regex = []
