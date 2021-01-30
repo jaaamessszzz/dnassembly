@@ -2,7 +2,7 @@
 
 import re
 
-from Bio.Restriction import BsaI, BbsI
+from Bio.Restriction import BbsI, BsmBI
 
 from ..reactions.moclo import PartOrder, CassetteOrder
 from .utils import reverse_complement
