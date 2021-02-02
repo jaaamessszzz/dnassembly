@@ -2,9 +2,9 @@
 # encoding: utf-8
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
-    from distutils.core import setup
+    from distutils.core import setup, find_packages
 
 with open('README.md') as file:
     readme = file.read()
@@ -34,9 +34,7 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3',
     ],
-    packages=[
-        'dnassembly',
-    ],
+    packages=find_packages(),
     install_requires=[
         'networkx',
         'biopython'
