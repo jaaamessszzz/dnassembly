@@ -152,7 +152,7 @@ class ModularCloning(GoldenGate):
 
 # --- MoClo Related Functions --- #
 
-def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bbsi=True, remove_bsmbi=True, remove_noti=True):
+def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bbsi=True, remove_bsmbi=True, remove_noti=False):
     """
     Create a MoClo compatible part from an arbitrary sequence
     Checks for BbsI/BsmBI restriction sites
@@ -184,7 +184,8 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
                     }
 
     standardize_3 = {'3c': 'GT',
-                     '3e': 'GT'
+                     '3e': 'GT',
+                     '4b': 'TAA'
                      }
 
     # Add part overhangs
@@ -219,8 +220,6 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
         rxn_regex += ['GAAGAC', 'GTCTTC']
     if remove_bsmbi:
         rxn_regex += ['CGTCTC', 'GAGACG']
-    #if remove_noti: #Don't need to remove NotI for now - not required for our pipeline
-    #    rxn_regex += ['GCGGCCGC', 'CGCCGGCG']
 
     regex_pattern = f"?=({'|'.join(rxn_regex)})"
 
