@@ -132,7 +132,7 @@ class GGpart():
 
         self.possibleTemplates = possibleTemplates
         for each in self.possibleTemplates:
-            self.possibleTemplates[each]["seq"] = self.possibleTemplates[each]["seq"].replace("\r","").replace("\n","").replace(" ","")
+            self.possibleTemplates[each] = self.possibleTemplates[each].replace("\r","").replace("\n","").replace(" ","")
 
         self.additionalOHs = addOHs
 
@@ -514,7 +514,7 @@ class GGpart():
 ##################################################################
 
         for i in range(len(self.GGfrags)):
-            assemIns.append(AssemblyInstructions(methods[i], primers[i], self.GGfrags[i], self.possibleTemplates))
+            assemIns.append(AssemblyInstructions(methods, primers, self.GGfrags[i], self.possibleTemplates))
         return assemIns
 
     def getPrimersAndMethods(self):

@@ -39,12 +39,12 @@ class AssemblyInstructions():
 def findTemplate(seq, possible_templates):
 	s = seq.upper()
 	keys = possible_templates.keys()
-	pdb.set_trace()
-	keys.sort()
+	#pdb.set_trace()
+	#keys.sort()
 	for possTemp in keys:
-		temp_seq = possible_templates[possTemp]["seq"].upper()
-		if not possible_templates[possTemp]["Linear"]:
-			temp_seq += possible_templates[possTemp]["seq"].upper()
+		temp_seq = possible_templates[possTemp].upper()
+		#if not possible_templates[possTemp]["Linear"]: #not sure what this does, try removing
+			#temp_seq += possible_templates[possTemp]["seq"].upper()
 		if temp_seq.upper().find(s) > -1:
 			return possTemp
 		elif Seq(temp_seq.upper()).reverse_complement().find(s) > -1:
