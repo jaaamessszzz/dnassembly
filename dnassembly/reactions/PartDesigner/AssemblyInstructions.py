@@ -28,7 +28,7 @@ class AssemblyInstructions():
 			possTemp = findTemplate(GGfrag.seq, possible_templates)
 			if possTemp:
 				self.template = possTemp
-				self.templateSeq = possible_templates[possTemp]["seq"]
+				self.templateSeq = possible_templates[possTemp]
 
 
 	def __str__(self):
@@ -43,8 +43,8 @@ def findTemplate(seq, possible_templates):
 	#keys.sort()
 	for possTemp in keys:
 		temp_seq = possible_templates[possTemp].upper()
-		#if not possible_templates[possTemp]["Linear"]: #not sure what this does, try removing
-			#temp_seq += possible_templates[possTemp]["seq"].upper()
+		if possible_templates[possTemp]:
+			temp_seq += possible_templates[possTemp].upper()
 		if temp_seq.upper().find(s) > -1:
 			return possTemp
 		elif Seq(temp_seq.upper()).reverse_complement().find(s) > -1:

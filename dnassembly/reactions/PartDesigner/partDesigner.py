@@ -17,6 +17,7 @@ from .OHfinder import *
 from .AssemblyInstructions import *
 from .removeRS import *
 from .findTemplates import *
+from ...utils import benchlingAPI
 
 #from CodonOptimize.codonOptimize import codonOptimize
 #from makeBLASTdb import makeBLASTdb
@@ -114,7 +115,7 @@ entryVectors = {"OPL4772":"gcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttt
 entryVectorDigests = {"OPL4772":"aggctaggtggaggctcagtgatgataagtctgcgatggtggatgcatgtgtcatggtcatagctgtttcctgtgtgaaattgttatccgctcagagggcacaatcctattccgcgctatccgacaatctccaagacattaggtggagttcagttcggcgtatggcatatgtcgctggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccataggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctctattcaacaaagccgccgtcccgtcaagtcagcgtaaatgggtagggggcttcaaatcgtcctcgtgataccaattcggagcctgcttttttgtacaaacttgttgataatggcaattcaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagttagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagtttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagccagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgtttttccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaagcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctcgacgtttcccgttgaatatggctcatactcttcctttttcaatattattgaagcatttatcagggttattgtctcatgagcggatacatatttgaatgtatttagaaaaataaacaaataggggttccgcgcacatttccccgaaaagtgccagatacctgaaacaaaacccatcgtacggccaaggaagtctccaataactgtgatccaccacaagcgccagggttttcccagtcacgacgttgtaaaacgacggccagtcatgcataatccgcacgcatctggaataaggaagtgccattccgcctgacct"}
 
 class GGpart():
-    def __init__(self, partName, leftPartType, rightPartType, seq, method="None", plasmidName="", inputSeqType="DNA", rsToRemove=['BbsI','BsmBI'], removeHomology=False,
+    def __init__(self, partName, leftPartType, rightPartType, seq, method="None", plasmidName="", inputSeqType="DNA", rsToRemove=["BbsI","BsmBI"], removeHomology=False,
                 skipPartPlasmid=False, fiveprime="", threeprime="", maxPrimerLength=60, possibleTemplates={}, databaseTemplates=[], addOHs=[]):
         self.partName = partName
         self.leftPartType = leftPartType
@@ -307,11 +308,12 @@ class GGpart():
             self.GGfrags[0].forced_method = self.method
             self.GGfrags = self.GGfrags[0].divideBySize(allowableSize)
         else:
+
             ##### Run findTemplates to find PCR templates in database####################
             '''Skip this functionality for now - in the future we may want to add the ability to use the API to search Benchling
             dbpath = makeBLASTdb(self.possibleTemplates, self.databaseTemplates)
 
-            results = findTemplates(self.GGfrags[0].seq, dbpath) #results is in the form of 0=
+            results = findTemplates(self.GGfrags[0].seq, dbpath)
             self.GGfrags[0].seq = results[0] #duplicates sequence? Not sure what this is for
             con = MySQLdb.connect(DATABASE_HOST, DATABASE_USER, DATABASE_PASSWD, DATABASE_NAME);
             cur = con.cursor(MySQLdb.cursors.DictCursor)
@@ -506,7 +508,7 @@ class GGpart():
         assemIns = []
         results = self.getPrimersAndMethods()
         primers = results[0]
-        methods = results[1]
+        methods = results[1][0]
 
 ##### Add unique cutters surrounding each PCA fragment ###########
         if self.method == "PCA":
@@ -517,7 +519,7 @@ class GGpart():
             assemIns.append(AssemblyInstructions(methods, primers, self.GGfrags[i], self.possibleTemplates))
         return assemIns
 
-    def getPrimersAndMethods(self):
+    def getPrimersAndMethods(self): #Can a single fragment have multiple assembly methods/primers?
         primers = []
         methods = []
         for each in self.GGfrags:
