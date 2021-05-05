@@ -34,6 +34,8 @@ class Part(DNA):
         self.extension_3 = extension_3
         # todo: raise exception if 5'/3' overhangs+extensions overlap!
         # Derive GGFrag properties
+        # todo: derived properties can be desynced from Part properties!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        # todo: convert derived properties into properties with getter functions to avoid this!!!!!!!!!!!!!!!!!!!!!!!!!!
         self._derived_properties()
         self.forced_method = forced_method
 
@@ -142,7 +144,7 @@ class Part(DNA):
                    overhang_3=overhang_3, overhang_5=overhang_5, extension_5=extension_5, extension_3=extension_3, forced_method=forced_method)
 
     @classmethod
-    def GGFrag(cls, fiveprimeOH="", fiveprimeExt="", seq="", threeprimeExt="",  threeprimeOH="", forced_method=False,
+    def GGfrag(cls, fiveprimeOH="", fiveprimeExt="", seq="", threeprimeExt="",  threeprimeOH="", forced_method=False,
                entity_id=None, name=None, features=None, description=None, source=None):
         """Alternative construtor for Parts using PartDesigner GGFrag notation
         GGFrag seems to assume Type II restriction enzymes are always used, so overhang tuple is (4, 5)
@@ -160,14 +162,14 @@ class Part(DNA):
 
     def _derived_properties(self):
         """Provides compatibility with legacy GGFrag codebase"""
-        # :param overhang_5: tuple, (overhang length, { 3 | 5 | None }) for 5' end of DNA
-        # :param overhang_3: tuple, (overhang length, { 3 | 5 | None }) for 3' end of DNA
-        self.fiveprimeOH = self.sequence[:self.overhang_5[0]] if self.overhang_5 is not None else None
-        self.threeprimeOH = self.sequence[-self.overhang_3[0]:] if self.overhang_3 is not None else None
+        # todo: convert derived properties into properties to avoid desync from main attributes!!!!!!!!!!!!!!!!!!!!!!!!!
+        self.fiveprimeOH = self.sequence[:self.overhang_5[0]] if self.overhang_5 is not None else ""
+        self.threeprimeOH = self.sequence[-self.overhang_3[0]:] if self.overhang_3 is not None else ""
         self.fiveprimeExt = self.sequence[:self.extension_5] if self.overhang_5 is None \
             else self.sequence[self.overhang_5[0]:self.overhang_5[0]+self.extension_5]
         self.threeprimeExt = self.sequence[:-self.extension_3] if self.overhang_3 is None \
             else self.sequence[-(self.extension_3+self.overhang_3[0]):-self.overhang_3[0]]
+        self.seq = self.sequence[len(self.fiveprimeOH+self.fiveprimeExt):len(self.threeprimeOH+self.threeprimeExt)]
 
     # --- Methods --- #
 
@@ -207,6 +209,20 @@ class Part(DNA):
                     overhang_5=self.overhang_5, overhang_3=part_1_overhang_3),\
                Part(new_part_2, entity_id=self.entity_id, name=f'{self.name}-r_product', features=self.features, source=self.entity_id,
                     overhang_5=part_2_overhang_5, overhang_3=self.overhang_3)
+
+    # GGfrag compatibility
+    def assignTails(self, tails, enzyme):
+        """Add external BsmBI/BsaI sites to DNA fragment for entry into part entry vector"""
+        enz = getattr(Restriction, enzyme)
+        for_site = enz.site
+        rev_site = str(Seq(enz.site).reverse_complement())
+
+        #Delete external restriction site on primer if it's already internal
+        self.tails = [tails[0], tails[1]]
+        if self.getFragSeq()[5:11].upper() == rev_site:
+            self.tails[0] = tails[0][0:4]
+        if self.getFragSeq()[-11:-5].upper() == for_site:
+            self.tails[1] = tails[1][-4:]
 
 
 class Backbone(Part):
