@@ -4,6 +4,7 @@ import re
 
 from .dna import DNA
 
+
 class Part(DNA):
     """
     Subclass to hold special attributes related to a DNA part. Parts are the individual units of DNA that come together
@@ -11,7 +12,7 @@ class Part(DNA):
     """
 
     def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None, overhang_5=None,
-                 overhang_3=None):
+                 overhang_3=None, extension_5=None, extension_3=None, forced_method=None):
         """
         :param sequence: string representation of dsDNA 5' -> 3'
         :param entity_id: string, systematic identification of this Part
@@ -21,10 +22,20 @@ class Part(DNA):
         :param source: string, entity_id of part source or None
         :param overhang_5: tuple, (overhang length, { 3 | 5 | None }) for 5' end of DNA
         :param overhang_3: tuple, (overhang length, { 3 | 5 | None }) for 3' end of DNA
+        :param extension_5: number of bases downstream of overhang to consider an extension of part sequence
+        :param extension_3: number of bases downstream of overhang to consider an extension of part sequence
         """
         super().__init__(sequence, entity_id=entity_id, name=name, features=features, description=description, source=source)
+        # Derive overhangs from sequence
         self.overhang_5 = overhang_5
         self.overhang_3 = overhang_3
+        # Derive extensions from sequence
+        self.extension_5 = extension_5
+        self.extension_3 = extension_3
+        # todo: raise exception if 5'/3' overhangs+extensions overlap!
+        # Derive GGFrag properties
+        self._derived_properties()
+        self.forced_method = forced_method
 
     def __repr__(self):
         return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
@@ -73,7 +84,8 @@ class Part(DNA):
 
     @classmethod
     def define_overhangs(cls, sequence, l_overhang_strand=None, l_overhang_bases=0, r_overhang_strand=None, r_overhang_bases=0,
-                         entity_id=None, name=None, features=None, description=None, source=None):
+                         entity_id=None, name=None, features=None, description=None, source=None, extension_5=None, extension_3=None,
+                         forced_method=None):
         """
         Alternative constructor where sticky ends may be defined in a more conventional/intuitive way... a la BioPython.
         Left and right refer to the 5' and 3' ends of the DNA, respectively. The left and right terminology is used here
@@ -126,7 +138,36 @@ class Part(DNA):
                 raise PartDefinitionException(f'r_overhang_strand can only be int(3) or int(5)! ({type(r_overhang_strand), r_overhang_strand} was provided)')
             overhang_3 = (r_overhang_bases, r_overhang_strand)
 
-        return cls(sequence, entity_id=entity_id, name=name, description=description, features=features, source=source, overhang_3=overhang_3, overhang_5=overhang_5)
+        return cls(sequence, entity_id=entity_id, name=name, description=description, features=features, source=source,
+                   overhang_3=overhang_3, overhang_5=overhang_5, extension_5=extension_5, extension_3=extension_3, forced_method=forced_method)
+
+    @classmethod
+    def GGFrag(cls, fiveprimeOH="", fiveprimeExt="", seq="", threeprimeExt="",  threeprimeOH="", forced_method=False,
+               entity_id=None, name=None, features=None, description=None, source=None):
+        """Alternative construtor for Parts using PartDesigner GGFrag notation
+        GGFrag seems to assume Type II restriction enzymes are always used, so overhang tuple is (4, 5)
+        """
+        full_sequence = "".join([fiveprimeOH, fiveprimeExt, seq, threeprimeExt, threeprimeOH])
+        overhang_5 = (len(threeprimeOH), 5)
+        overhang_3 = (len(fiveprimeOH), 5)
+        extension_5 = len(fiveprimeExt)
+        extension_3 = len(threeprimeExt)
+
+        return cls(full_sequence, entity_id=entity_id, name=name, description=description, features=features, source=source,
+                   overhang_3=overhang_3, overhang_5=overhang_5, extension_5=extension_5, extension_3=extension_3, forced_method=forced_method)
+
+    # --- Derived Properties --- #
+
+    def _derived_properties(self):
+        """Provides compatibility with legacy GGFrag codebase"""
+        # :param overhang_5: tuple, (overhang length, { 3 | 5 | None }) for 5' end of DNA
+        # :param overhang_3: tuple, (overhang length, { 3 | 5 | None }) for 3' end of DNA
+        self.fiveprimeOH = self.sequence[:self.overhang_5[0]] if self.overhang_5 is not None else None
+        self.threeprimeOH = self.sequence[-self.overhang_3[0]:] if self.overhang_3 is not None else None
+        self.fiveprimeExt = self.sequence[:self.extension_5] if self.overhang_5 is None \
+            else self.sequence[self.overhang_5[0]:self.overhang_5[0]+self.extension_5]
+        self.threeprimeExt = self.sequence[:-self.extension_3] if self.overhang_3 is None \
+            else self.sequence[-(self.extension_3+self.overhang_3[0]):-self.overhang_3[0]]
 
     # --- Methods --- #
 
