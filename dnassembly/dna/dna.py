@@ -38,6 +38,8 @@ class DNA(object):
                f'Description: {self.description[:50]}{"..." if len(self.sequence) > 50 else ""}\n' \
                f'{self.sequence[:60]}{"..." if len(self.sequence) > 60 else ""}\n'
 
+    def __len__(self):
+        return len(self.sequence)
     # --- Property Setters --- #
 
     @property

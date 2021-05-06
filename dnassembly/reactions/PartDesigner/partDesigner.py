@@ -9,7 +9,7 @@ import pdb
 from Bio import SearchIO, SeqIO
 #from Bio.Alphabet import IUPAC
 from Bio.Seq import Seq
-from Bio.Restriction import BbsI, BsaI, Restriction, FormattedSeq
+from Bio.Restriction import BsmBI, BbsI, BsaI, Restriction, FormattedSeq
 
 from .GGfrag import *
 from .MergeSegments import *
@@ -17,7 +17,11 @@ from .OHfinder import *
 from .AssemblyInstructions import *
 from .removeRS import *
 from .findTemplates import *
+
+from ...dna.part import Part
 from ...utils.benchlingAPI import *
+from ...design.partdesigner import *
+from ..cloning import StickyEndAssembly
 
 #from CodonOptimize.codonOptimize import codonOptimize
 #from makeBLASTdb import makeBLASTdb
@@ -106,26 +110,27 @@ partextension_3 = {'1': '',
 
 multigene_ohs = ["CTGA", "CCAA", "GATG", "GTTC", "GGTA", "AAGT", "AGCA"] # - NEED TO FIX, is this even used?
 
-#Sequence to add to ends of a PCR in order to digest with BsmBI for entry into Stage 1 vector
+# Sequence to add to ends of a PCR in order to digest with BsmBI for entry into Stage 1 vector
 tails = {"BsmBI":("GCATCGTCTCA", "TGAGACGGCAT"),
 		"BbsI":("GCATGAAGACTC", "AGGTCTTCGCAT")}
 
+# todo: enable  use of multiple part entry vector types through webapp
 entryVectors = {"OPL4772":"gcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagtttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagccagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgtttttccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaagcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctcgacgtttcccgttgaatatggctcatactcttcctttttcaatattattgaagcatttatcagggttattgtctcatgagcggatacatatttgaatgtatttagaaaaataaacaaataggggttccgcgcacatttccccgaaaagtgccagatacctgaaacaaaacccatcgtacggccaaggaagtctccaataactgtgatccaccacaagcgccagggttttcccagtcacgacgttgtaaaacgacggccagtcatgcataatccgcacgcatctggaataaggaagtgccattccgcctgacctttctagagacgttctagagcacagctaacaccacgtcgtccctatctgctgccctaggtctatgagtggttgctggataactttacgggcatgcataaggctcgtataatatattcagggagaccacaacggtttccctctacaaataattttgtttaacttttactagatcacacaggaaagtactagatgcgtaaaggagaagaacttttcactggagttgtcccaattcttgttgaattagatggtgatgttaatgggcacaaattttctgtcagtggagagggtgaaggtgatgcaacatacggaaaacttacccttaaatttatttgcactactggaaaactacctgttccatggccaacacttgtcactactttcggttatggtgttcaatgctttgcgagatacccagatcatatgaaacagcatgactttttcaagagtgccatgcccgaaggttatgtacaggaaagaactatatttttcaaagatgacgggaactacaagacacgtgctgaagtcaagtttgaaggtgatacccttgttaatagaatcgagttaaaaggtattgattttaaagaagatggaaacattcttggacacaaattggaatacaactataactcacacaatgtatacatcatggcagacaaacaaaagaatggaatcaaagttaacttcaaaattagacacaacattgaagatggaagcgttcaactagcagaccattatcaacaaaatactccaattggcgatggccctgtccttttaccagacaaccattacctgtccacacaatctgccctttcgaaagatcccaacgaaaagagagaccacatggtccttcttgagtttgtaacagctgctgggattacacatggcatggatgaactatacaaatagtagtactagagccaggcatcaaataaaacgaaaggctcagtcgaaagactgggcctttcgttttatctgttgtttgtcggtgaacgctctctactagagtcacactggctcaccttcgggtgggcctttctgcgtttatacgtctcgaacgaggctaggtggaggctcagtgatgataagtctgcgatggtggatgcatgtgtcatggtcatagctgtttcctgtgtgaaattgttatccgctcagagggcacaatcctattccgcgctatccgacaatctccaagacattaggtggagttcagttcggcgtatggcatatgtcgctggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccataggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctctattcaacaaagccgccgtcccgtcaagtcagcgtaaatgggtagggggcttcaaatcgtcctcgtgataccaattcggagcctgcttttttgtacaaacttgttgataatggcaattcaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagttagaaaaactcatcga"}
 
 entryVectorDigests = {"OPL4772":"aggctaggtggaggctcagtgatgataagtctgcgatggtggatgcatgtgtcatggtcatagctgtttcctgtgtgaaattgttatccgctcagagggcacaatcctattccgcgctatccgacaatctccaagacattaggtggagttcagttcggcgtatggcatatgtcgctggaaagaacatgtgagcaaaaggccagcaaaaggccaggaaccgtaaaaaggccgcgttgctggcgtttttccataggctccgcccccctgacgagcatcacaaaaatcgacgctcaagtcagaggtggcgaaacccgacaggactataaagataccaggcgtttccccctggaagctccctcgtgcgctctcctgttccgaccctgccgcttaccggatacctgtccgcctttctcccttcgggaagcgtggcgctttctcatagctcacgctgtaggtatctcagttcggtgtaggtcgttcgctccaagctgggctgtgtgcacgaaccccccgttcagcccgaccgctgcgccttatccggtaactatcgtcttgagtccaacccggtaagacacgacttatcgccactggcagcagccactggtaacaggattagcagagcgaggtatgtaggcggtgctacagagttcttgaagtggtggcctaactacggctacactagaagaacagtatttggtatctgcgctctgctgaagccagttaccttcggaaaaagagttggtagctcttgatccggcaaacaaaccaccgctggtagcggtggtttttttgtttgcaagcagcagattacgcgcagaaaaaaaggatctcaagaagatcctttgatcttttctacggggtctgacgctctattcaacaaagccgccgtcccgtcaagtcagcgtaaatgggtagggggcttcaaatcgtcctcgtgataccaattcggagcctgcttttttgtacaaacttgttgataatggcaattcaaggatcttcacctagatccttttaaattaaaaatgaagttttaaatcaatctaaagtatatatgagtaaacttggtctgacagttagaaaaactcatcgagcatcaaatgaaactgcaatttattcatatcaggattatcaataccatatttttgaaaaagccgtttctgtaatgaaggagaaaactcaccgaggcagttccataggatggcaagatcctggtatcggtctgcgattccgactcgtccaacatcaatacaacctattaatttcccctcgtcaaaaataaggttatcaagtgagaaatcaccatgagtgacgactgaatccggtgagaatggcaaaagtttatgcatttctttccagacttgttcaacaggccagccattacgctcgtcatcaaaatcactcgcatcaaccaaaccgttattcattcgtgattgcgcctgagccagacgaaatacgcgatcgctgttaaaaggacaattacaaacaggaatcgaatgcaaccggcgcaggaacactgccagcgcatcaacaatattttcacctgaatcaggatattcttctaatacctggaatgctgtttttccggggatcgcagtggtgagtaaccatgcatcatcaggagtacggataaaatgcttgatggtcggaagaggcataaattccgtcagccagtttagtctgaccatctcatctgtaacatcattggcaacgctacctttgccatgtttcagaaacaactctggcgcatcgggcttcccatacaagcgatagattgtcgcacctgattgcccgacattatcgcgagcccatttatacccatataaatcagcatccatgttggaatttaatcgcggcctcgacgtttcccgttgaatatggctcatactcttcctttttcaatattattgaagcatttatcagggttattgtctcatgagcggatacatatttgaatgtatttagaaaaataaacaaataggggttccgcgcacatttccccgaaaagtgccagatacctgaaacaaaacccatcgtacggccaaggaagtctccaataactgtgatccaccacaagcgccagggttttcccagtcacgacgttgtaaaacgacggccagtcatgcataatccgcacgcatctggaataaggaagtgccattccgcctgacct"}
 
+
 class GGpart():
-	def __init__(self, partName, leftPartType, rightPartType, seq, method=None, fiveprime=None, threeprime=None, possibleTemplates={}, plasmidName="", inputSeqType="DNA", rsToRemove=["BbsI","BsmBI"], removeHomology=False,
-				skipPartPlasmid=False, maxPrimerLength=60, databaseTemplates=[], addOHs=[]):
+	def __init__(self, partName, leftPartType, rightPartType, seq, method=None, fiveprime=None, threeprime=None,
+				 possibleTemplates={}, plasmidName="", inputSeqType="DNA", rsToRemove=["BbsI","BsmBI"], removeHomology=False,
+				 skipPartPlasmid=False, maxPrimerLength=60, databaseTemplates=[], addOHs=[]):
+
 		self.partName = partName
 		self.leftPartType = leftPartType
 		self.rightPartType = rightPartType
 		self.inputSeq = seq
 
-		if method == None:
-			self.method = "None"
-		else:
-			self.method = method
+		self.method = "None" if method is None else method
 
 		self.plasmidName = plasmidName
 
@@ -185,9 +190,11 @@ class GGpart():
 				self.fragments = self.getAssemblyInstructions()
 
 
-#       ################ Other functions #################
-	# Check to make sure input is in the form of DNA letters
-	def _verify_alphabet(sequence):
+	################ Other functions #################
+
+	# REDUNDANT METHOD! - not used anywhere and can be removed
+    # Check to make sure input is in the form of DNA letters
+	def _verify_alphabet(sequence):  # todo: what.
 		letters = sequence.alphabet.letters
 		if not letters:
 			raise ValueError("Alphabet does not define letters.")
@@ -196,8 +203,10 @@ class GGpart():
 				return False
 		return True
 
-	# Check to ensure the input sequence is DNA and does not break part 1 and 5 construction
 	def checkInput_beforeOptimization(self):
+		"""Check to ensure the input sequence is DNA and does not break part 1 and 5 construction
+		Specifically checks that BsmBI sites are not removed from connector parts.
+		"""
 		#seq = Seq(self.inputSeq.upper())
 		#if not (_verify_alphabet(seq)):
 		#    self.errors.append("The DNA sequence you entered in invalid.")
@@ -210,8 +219,8 @@ class GGpart():
 		else:
 			return True
 
-	# Use custom script to remove defined RS. By default these are defined as BbsI and BsmBI
 	def removeInternalRS(self): #goto removeRS.py
+		"""Use custom script to remove defined RS. By default these are defined as BbsI and BsmBI"""
 		self.partSeq = removeRS(self.inputSeq, self.rsToRemove)
 
 	def checkInput_afterOptimization(self):
@@ -261,7 +270,6 @@ class GGpart():
 		else:
 			return True
 
-
 	def _initGGfrag(self, fiveprime, threeprime):
 		#fiveprime and threeprime are variables that will get passed in the case of custom part design
 		#only set to true if you have to gel purify the fragments
@@ -299,7 +307,7 @@ class GGpart():
 			threeprimeExt = partextension_3[self.rightPartType] + partOH_3[self.rightPartType] + entry_extensions[1].upper()
 
 		#Set vector
-		self.subclone = False
+		# todo: get rid of this dependency
 		self.vectorName = "OPL4772" #Remember to hardcode in this vector
 
 		newFrag = GGfrag(fiveprimeOH, fiveprimeExt, frag_seq, threeprimeExt, threeprimeOH)
@@ -315,19 +323,19 @@ class GGpart():
 		elif self.method == "PCA":
 			allowableSize = PCAMaxSize - 24
 
-		#Divide the initialized GGfrag into chunks based on assembly method
+		# Divide the initialized GGfrag into chunks based on assembly method
 		if self.method in ["gBlocks", "Oligo Assembly", "PCA"]:
 			self.GGfrags[0].forced_method = self.method
-			self.GGfrags = self.GGfrags[0].divideBySize(allowableSize)
+			self.GGfrags = divideBySize(self.GGfrags[0], allowableSize)
 		else:
 			#pdb.set_trace()
-			self.GGfrags = self.GGfrags[0].divideByCaseChange() #Uppercase should come from the removeRS
+			self.GGfrags = divideByCaseChange(self.GGfrags[0]) #Uppercase should come from the removeRS
 			self._mergeFragments() #
 			### Split sequence without template into gBlock sized chunks###
 			if self.method == "None":
 				tempFrags = []
 				for index, each in enumerate(self.GGfrags):
-					#Check to see if template exists in Benchling Registry
+					# todo: Check to see if template exists in Benchling Registry
 					results = searchSeqBenchling(each.seq)
 
 					if results:
@@ -338,28 +346,28 @@ class GGpart():
 							self.possibleTemplates[alias] = seq
 
 					if not findTemplate(each.seq, self.possibleTemplates):
-						if each.getLength() > 2100:
+						if len(each) > 2100:
 							each.forced_method = "PCA"
-							tempFrags += each.divideBySize(PCAMaxSize - 24)
-						elif each.getLength() < gBlockMinSize:
+							tempFrags += divideBySize(each, PCAMaxSize - 24)
+						elif len(each)  < gBlockMinSize:
 							each.forced_method = "Oligo Assembly"
 							tempFrags += [each]
 						#If length is just over gBlock length, make the assembly include one oligo assembly to save on a gBlock
-						elif 0 < each.getLength() % (gBlockMaxSize - 24) < gBlockMinSize - 4 * each.getLength()/(gBlockMaxSize-24):
-							oligoAssemSize = max(20, each.getLength() % (gBlockMaxSize - 24) + 4 * each.getLength()/(gBlockMaxSize-24))
+						elif 0 < len(each) % (gBlockMaxSize - 24) < gBlockMinSize - 4 * each.getLength()/(gBlockMaxSize-24):
+							oligoAssemSize = max(20, len(each) % (gBlockMaxSize - 24) + 4 * len(each)/(gBlockMaxSize-24))
 							if index == 0:
-								oligoFrag = GGfrag(each.getFragSeq()[:4], "", each.getFragSeq()[4:oligoAssemSize], "", "", forced_method="Oligo Assembly")
+								oligoFrag = Part.GGfrag(each.sequence[:4], "", each.sequence[4:oligoAssemSize], "", "", forced_method="Oligo Assembly")
 							else:
-								oligoFrag = GGfrag("", "", each.getFragSeq()[:oligoAssemSize], "", "", forced_method="Oligo Assembly")
+								oligoFrag = Part.GGfrag("", "", each.sequence[:oligoAssemSize], "", "", forced_method="Oligo Assembly")
 							if index == len(self.GGfrags)-1:
-								gBlockFrag = GGfrag("", "", each.getFragSeq()[oligoAssemSize:-4], "", each.getFragSeq()[-4:], forced_method="gBlocks")
+								gBlockFrag = Part.GGfrag("", "", each.sequence[oligoAssemSize:-4], "", each.sequence[-4:], forced_method="gBlocks")
 							else:
-								gBlockFrag = GGfrag("", "", each.getFragSeq()[oligoAssemSize:], "", "", forced_method="gBlocks")
+								gBlockFrag = Part.GGfrag("", "", each.sequence[oligoAssemSize:], "", "", forced_method="gBlocks")
 							tempFrags += [oligoFrag]
-							tempFrags += gBlockFrag.divideBySize(gBlockMaxSize - 24)
+							tempFrags += divideBySize(gBlockFrag, gBlockMaxSize - 24)
 						else:
 							each.forced_method = "gBlocks"
-							tempFrags += each.divideBySize(gBlockMaxSize - 24)
+							tempFrags += divideBySize(each, gBlockMaxSize - 24)
 					else:
 						tempFrags.append(each)
 				self.GGfrags = tempFrags
@@ -398,7 +406,7 @@ class GGpart():
 			if i == len(mergedSegs) - 1:
 				threeprimeOH = self.GGfrags[-1].threeprimeOH
 				threeprimeExt = mergedSegs[i][2][:-4]
-			newFrag = GGfrag(fiveprimeOH, fiveprimeExt, seq, threeprimeExt, threeprimeOH)
+			newFrag = Part.GGfrag(fiveprimeOH, fiveprimeExt, seq, threeprimeExt, threeprimeOH)  # todo: do these need to be annotated with the assembly method?
 			newFrags.append(newFrag)
 		self.GGfrags = newFrags
 
@@ -465,13 +473,13 @@ class GGpart():
 			for i in range(len(self.GGfrags)-1):
 				currFrag = self.GGfrags[i]
 				nextFrag = self.GGfrags[i+1]
-				if (currFrag.getLength() + nextFrag.getLength()) < oligoAssemblySize:
+				if (len(currFrag) + len(nextFrag)) < oligoAssemblySize:
 					fiveprimeOH = currFrag.fiveprimeOH
 					fiveprimeExt = currFrag.fiveprimeExt + currFrag.seq + currFrag.threeprimeExt + currFrag.threeprimeOH + nextFrag.fiveprimeExt
 					seq = nextFrag.seq
 					threeprimeExt = nextFrag.threeprimeExt
 					threeprimeOH = nextFrag.threeprimeOH
-					mergedFrag = GGfrag(fiveprimeOH, fiveprimeExt, seq, threeprimeExt, threeprimeOH)
+					mergedFrag = Part.GGfrag(fiveprimeOH, fiveprimeExt, seq, threeprimeExt, threeprimeOH)
 					self.GGfrags.pop(i)
 					self.GGfrags[i] = mergedFrag
 					fragsMerged = True
@@ -504,6 +512,18 @@ class GGpart():
 			self.vectorSeq = "NNNNNNNNNN" + self.vectorDigest #mike changed to self.vectorDigest
 		return s
 
+	def performPartAssembly(self, part_entry_vector):
+		"""
+		Use StickyEndAssembly to perform assembly
+		Assumes BsmBI for part assembly
+
+		:param part_entry_vector: Plasmid instance for part entry vector
+		"""
+		part_assembly = StickyEndAssembly([self.GGfrags, part_entry_vector], [BsmBI])
+		part_assembly.digest()
+		assembled_part = part_assembly.perform_assembly()
+		return assembled_part
+
 	def getAssemblyInstructions(self):
 		assemIns = []
 		results = self.getPrimersAndMethods()
@@ -511,13 +531,13 @@ class GGpart():
 		primers = results[0]
 		methods = results[1][0]
 
-##### Add unique cutters surrounding each PCA fragment ###########
+		##### Add unique cutters surrounding each PCA fragment ###########
 		if self.method == "PCA":
 			tails[self.enzyme] = (tails[self.enzyme][0][:4] + "GAATTCA" + tails[self.enzyme][0][4:], tails[self.enzyme][1][:-4] + "AGGATCC" + tails[self.enzyme][1][-4:])
-##################################################################
+		##################################################################
 
-		for i in range(len(self.GGfrags)):
-			assemIns.append(AssemblyInstructions(methods, primers, self.GGfrags[i], self.possibleTemplates))
+		for fragment in self.GGfrags:
+			assemIns.append(AssemblyInstructions(methods, primers, fragment, self.possibleTemplates))
 		return assemIns
 
 	def getPrimersAndMethods(self): #Can a single fragment have multiple assembly methods/primers?
@@ -528,14 +548,14 @@ class GGpart():
 				primers.append([])
 				methods.append("gBlocks")
 			elif self.method == "Oligo Assembly":
-				primers.append(each.getOligoAssemPrimers(self.maxPrimerLength))
+				primers.append(getOligoAssemPrimers(each, self.maxPrimerLength))
 				methods.append("Oligo Assembly")
 			#elif self.method == "PCA":
 			#	primers.append(each.getPCAprimers(self.maxPrimerLength))
 			#	methods.append("PCA")
 			#Check to make sure PCR templates are present
 			elif self.method == "PCR":
-				primers.append(each.getPCRprimers(self.maxPrimerLength, annealingLength, oligoTM=oligoTM))
+				primers.append(getPCRprimers(each, self.maxPrimerLength, annealingLength, oligoTM=oligoTM))
 				methods.append("PCR")
 				if not findTemplate(each.seq, self.possibleTemplates):
 					message = "PCR templates could not be found for this assembly. If you have a template, add it to the templates text box. If you don't have a template, consider using an assembly method other than PCR."
@@ -543,8 +563,8 @@ class GGpart():
 						self.errors.append(message)
 			elif self.method == "None":
 				if not self.possibleTemplates: #Change - if no template, then
-					if each.getLength() <= gBlockMinSize:
-						primers.append(each.getOligoAssemPrimers(self.maxPrimerLength))
+					if len(each) <= gBlockMinSize:
+						primers.append(getOligoAssemPrimers(each, self.maxPrimerLength))
 						methods.append("Oligo Assembly")
 					#elif each.getLength() + len(tails[self.enzyme][0]) + len(tails[self.enzyme][1]) >  gBlockMaxSize:
 						#primers.append(each.getPCAprimers(self.maxPrimerLength))
@@ -553,10 +573,10 @@ class GGpart():
 						primers.append([])
 						methods.append("gBlocks")
 				else:
-					if each.getLength() <= oligoAssemblySize:
-						primers.append(each.getOligoAssemPrimers(self.maxPrimerLength))
+					if len(each) <= oligoAssemblySize:
+						primers.append(getOligoAssemPrimers(each, self.maxPrimerLength))
 						methods.append("Oligo Assembly")
 					else:
-						primers.append(each.getPCRprimers(self.maxPrimerLength, annealingLength, oligoTM=oligoTM))
+						primers.append(getPCRprimers(each, self.maxPrimerLength, annealingLength, oligoTM=oligoTM))
 						methods.append("PCR")
 		return (primers, methods)

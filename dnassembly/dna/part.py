@@ -4,6 +4,14 @@ import re
 
 from .dna import DNA
 
+"""
+GGfrag >> Part conversions
+
+GGfrag.getLength()          >>      len(part)
+GGfrag.getFragSeq()         >>      part.sequence
+
+Part now has a new GGFrag alternative constructor for compatibility with existing GGFrag usages
+"""
 
 class Part(DNA):
     """
@@ -219,9 +227,9 @@ class Part(DNA):
 
         #Delete external restriction site on primer if it's already internal
         self.tails = [tails[0], tails[1]]
-        if self.getFragSeq()[5:11].upper() == rev_site:
+        if self.sequence[5:11].upper() == rev_site:
             self.tails[0] = tails[0][0:4]
-        if self.getFragSeq()[-11:-5].upper() == for_site:
+        if self.sequence[-11:-5].upper() == for_site:
             self.tails[1] = tails[1][-4:]
 
 
