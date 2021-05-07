@@ -23,7 +23,7 @@ GGfrag()                >>      Part.GGfrag()
 
 def divideBySize(input_part, size):
     """Return a list of Parts divided by size"""
-    length = len(input_part.sequence)
+    length = len(input_part)
     numFrags = 0
     if length % size == 0:
         numFrags = int(length/size)
