@@ -83,7 +83,7 @@ def singleBPmutation(seq1, seq2):
 
 def silentMutate(seq, leftIndex, rightIndex, enzyme_list=[]):
     firstCodonIndex = leftIndex - (leftIndex % 3)
-    numCodons = rightIndex / 3 - leftIndex / 3 + rightIndex % 3
+    numCodons = int(rightIndex / 3) - int(leftIndex / 3) + rightIndex % 3
     possCodons = []
     # i holds the codon number
     for i in range(numCodons):
@@ -98,7 +98,7 @@ def silentMutate(seq, leftIndex, rightIndex, enzyme_list=[]):
     possCodons.sort(key=lambda x: x[1])
     if len(possCodons) < 1:
         raise Exception("Couldn't find a base to mutate silently.")
-        successfullyMutated = False
+    successfullyMutated = False
     while not successfullyMutated:
         newCodon = possCodons.pop()
 
