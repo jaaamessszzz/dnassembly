@@ -21,9 +21,10 @@ class DNA(object):
 
     dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
-    def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None):
+    def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None, metadata=None):
         """
         :param sequence: string representation of dsDNA 5' -> 3'
+        :param metadata: dict containing random metadata about the plasmid
         """
         self.entity_id = entity_id
         self.name = name
