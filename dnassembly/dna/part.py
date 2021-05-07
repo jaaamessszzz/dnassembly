@@ -2,6 +2,9 @@
 
 import re
 
+from Bio.Seq import Seq
+from Bio.Restriction import Restriction
+
 from .dna import DNA
 
 """
@@ -66,7 +69,6 @@ class Part(DNA):
     @overhang_5.setter
     def overhang_5(self, overhang_5):
         if not (type(overhang_5) is tuple or overhang_5 is None):
-            print(overhang_5)
             raise PartDefinitionException('overhang_5 needs to be a tuple or None!')
         if type(overhang_5) is tuple:
             overhang_5_length, overhang_5_strand = overhang_5
@@ -171,13 +173,17 @@ class Part(DNA):
     def _derived_properties(self):
         """Provides compatibility with legacy GGFrag codebase"""
         # todo: convert derived properties into properties to avoid desync from main attributes!!!!!!!!!!!!!!!!!!!!!!!!!
+
+        extension_5 = self.extension_5 if self.extension_5 is not None else 0
+        extension_3 = self.extension_3 if self.extension_3 is not None else 0
+
         self.fiveprimeOH = self.sequence[:self.overhang_5[0]] if self.overhang_5 is not None else ""
         self.threeprimeOH = self.sequence[-self.overhang_3[0]:] if self.overhang_3 is not None else ""
-        self.fiveprimeExt = self.sequence[:self.extension_5] if self.overhang_5 is None \
-            else self.sequence[self.overhang_5[0]:self.overhang_5[0]+self.extension_5]
-        self.threeprimeExt = self.sequence[:-self.extension_3] if self.overhang_3 is None \
-            else self.sequence[-(self.extension_3+self.overhang_3[0]):-self.overhang_3[0]]
-        self.seq = self.sequence[len(self.fiveprimeOH+self.fiveprimeExt):len(self.threeprimeOH+self.threeprimeExt)]
+        self.fiveprimeExt = self.sequence[:extension_5] if self.overhang_5 is None \
+            else self.sequence[self.overhang_5[0]:self.overhang_5[0]+extension_5]
+        self.threeprimeExt = self.sequence[:-extension_3] if self.overhang_3 is None \
+            else self.sequence[-(extension_3+self.overhang_3[0]):-self.overhang_3[0]]
+        self.seq = self.sequence[len(self.fiveprimeOH+self.fiveprimeExt):-len(self.threeprimeOH+self.threeprimeExt)]
 
     # --- Methods --- #
 
