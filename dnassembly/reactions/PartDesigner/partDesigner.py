@@ -123,7 +123,9 @@ class GGpart():
 	def __init__(self, partName, leftPartType, rightPartType, seq, part_entry_vector, method=None, fiveprime=None, threeprime=None,
 				 possibleTemplates={}, plasmidName="", inputSeqType="DNA", rsToRemove=["BbsI","BsmBI"], removeHomology=False,
 				 skipPartPlasmid=False, maxPrimerLength=60, databaseTemplates=[], addOHs=[]):
-
+		"""
+		:param part_entry_vector: DNAssembly Plasmid
+		"""
 		self.partName = partName
 		self.leftPartType = leftPartType
 		self.rightPartType = rightPartType
@@ -484,33 +486,6 @@ class GGpart():
 					self.GGfrags[i] = mergedFrag
 					fragsMerged = True
 					break
-
-	def getPlasmidSeq(self):
-		s = ""
-		for index, each in enumerate(self.GGfrags):
-			s += each.fiveprimeOH + each.fiveprimeExt + each.seq + each.threeprimeExt
-			if index == len(self.GGfrags) - 1:
-				s += each.threeprimeOH
-		if self.vectorName == "None":
-			#temporary solution until we support skipPartPlasmid better
-			if self.skipPartPlasmid:
-				s = tails[self.enzyme][0] + s + tails[self.enzyme][1]
-		elif self.vectorName in entryVectorDigests.keys():
-			s += entryVectorDigests[self.vectorName]
-		else:
-			vector = "OPL4772"
-
-			''' #Just specify the one vector
-			if self.GGtype in ["1","234","2","2a","2b","3","3a","3ab","3ac","3ad","3ae","3b","3bc","3bd","3be","3c","3cd","3ce","3d","3de","3e","4","4a","4b","5","6","7"]:
-				vector = "OPL4772"
-			'''
-
-			s = entry_ohs[0] + entry_extensions[0] + s
-			s += entry_extensions[1] + entry_ohs[1]
-			s += entryVectorDigests[vector]
-			self.vectorDigest = self.GGfrags[-1].threeprimeOH + entry_extensions[1] + entry_ohs[1] + entryVectorDigests[vector] + entry_ohs[0] + entry_extensions[0] + self.GGfrags[0].fiveprimeOH
-			self.vectorSeq = "NNNNNNNNNN" + self.vectorDigest #mike changed to self.vectorDigest
-		return s
 
 	def performPartAssembly(self, part_entry_vector):
 		"""
