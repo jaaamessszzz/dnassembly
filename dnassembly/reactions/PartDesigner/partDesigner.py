@@ -163,6 +163,7 @@ class GGpart():
 		self.partSeq = ""
 		self.GGfrags = []
 		self.fragments = []
+		self.removeRS_tuples = None
 
 		if self.checkInput_beforeOptimization():
 			#Generate partSeq by removing RS and codon optimizing
@@ -223,7 +224,7 @@ class GGpart():
 
 	def removeInternalRS(self): #goto removeRS.py
 		"""Use custom script to remove defined RS. By default these are defined as BbsI and BsmBI"""
-		self.partSeq = removeRS(self.inputSeq, self.rsToRemove)
+		self.partSeq, self.removeRS_tuples = removeRS(self.inputSeq, self.rsToRemove)
 
 	def checkInput_afterOptimization(self):
 		f_seq = FormattedSeq(Seq(self.partSeq), True)
@@ -331,13 +332,15 @@ class GGpart():
 			self.GGfrags = divideBySize(self.GGfrags[0], allowableSize)
 		else:
 			#pdb.set_trace()
-			self.GGfrags = divideByCaseChange(self.GGfrags[0]) #Uppercase should come from the removeRS
+			self.GGfrags = divideByIndexTuples(self.GGfrags[0], self.removeRS_tuples) #Uppercase should come from the removeRS
 			self._mergeFragments() #
 			### Split sequence without template into gBlock sized chunks###
 			if self.method == "None":
 				tempFrags = []
 				for index, each in enumerate(self.GGfrags):
+					print(each.fiveprimeOH, each.fiveprimeExt, each.seq, each.threeprimeExt, each.threeprimeOH)
 					# todo: Check to see if template exists in Benchling Registry
+					print('SUBMITTED SEQ:', each.seq)
 					results = searchSeqBenchling(each.seq)
 
 					if results:
@@ -390,10 +393,17 @@ class GGpart():
 			return
 		#a segment is just a ist of 3 sequences, the middle piece is the template and the flanking pieces are extra sequence
 		segments = []
-		for i in range(len(self.GGfrags)):
-			newSeg = [self.GGfrags[i].fiveprimeOH + self.GGfrags[i].fiveprimeExt, self.GGfrags[i].seq, self.GGfrags[i].threeprimeExt + self.GGfrags[i].threeprimeOH]
+		for fragment in self.GGfrags:
+			newSeg = [fragment.fiveprimeOH + fragment.fiveprimeExt, fragment.seq, fragment.threeprimeExt + fragment.threeprimeOH]
 			segments.append(newSeg)
 		mergedSegs = mergeSegments(segments, maxPrimerLength, annealingLength)
+
+		from pprint import pprint
+		print('segments')
+		pprint(segments)
+		print('merged segments')
+		pprint(mergedSegs)
+
 		#convert segments into GGfrags
 		newFrags = []
 		for i in range(len(mergedSegs)):

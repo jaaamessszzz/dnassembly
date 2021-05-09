@@ -160,10 +160,10 @@ class Part(DNA):
         GGFrag seems to assume Type II restriction enzymes are always used, so overhang tuple is (4, 5)
         """
         full_sequence = "".join([fiveprimeOH, fiveprimeExt, seq, threeprimeExt, threeprimeOH])
-        overhang_5 = (len(threeprimeOH), 5)
-        overhang_3 = (len(fiveprimeOH), 5)
-        extension_5 = len(fiveprimeExt)
-        extension_3 = len(threeprimeExt)
+        overhang_5 = (len(fiveprimeOH), 5) if len(fiveprimeOH) > 0 else None
+        overhang_3 = (len(threeprimeOH), 5) if len(threeprimeOH) > 0 else None
+        extension_5 = len(fiveprimeExt) if len(fiveprimeExt) > 0 else None
+        extension_3 = len(threeprimeExt) if len(threeprimeExt) > 0 else None
 
         return cls(full_sequence, entity_id=entity_id, name=name, description=description, features=features, source=source,
                    overhang_3=overhang_3, overhang_5=overhang_5, extension_5=extension_5, extension_3=extension_3, forced_method=forced_method)
@@ -178,12 +178,24 @@ class Part(DNA):
         extension_3 = self.extension_3 if self.extension_3 is not None else 0
 
         self.fiveprimeOH = self.sequence[:self.overhang_5[0]] if self.overhang_5 is not None else ""
-        self.threeprimeOH = self.sequence[-self.overhang_3[0]:] if self.overhang_3 is not None else ""
-        self.fiveprimeExt = self.sequence[:extension_5] if self.overhang_5 is None \
-            else self.sequence[self.overhang_5[0]:self.overhang_5[0]+extension_5]
-        self.threeprimeExt = self.sequence[:-extension_3] if self.overhang_3 is None \
-            else self.sequence[-(extension_3+self.overhang_3[0]):-self.overhang_3[0]]
-        self.seq = self.sequence[len(self.fiveprimeOH+self.fiveprimeExt):-len(self.threeprimeOH+self.threeprimeExt)]
+        if extension_5 == 0:
+            self.fiveprimeExt = ""
+        else:
+            if self.overhang_5 is None:
+                self.fiveprimeExt = self.sequence[-extension_5:]
+            else:
+                self.fiveprimeExt = self.sequence[-(extension_5+self.overhang_5[0]):-self.overhang_5[0]]
+        
+        self.threeprimeOH = "" if self.overhang_3 is None else self.sequence[-self.overhang_3[0]:]      
+        if extension_3 == 0:
+            self.threeprimeExt = ""
+        else:
+            if self.overhang_3 is None:
+                self.threeprimeExt = self.sequence[-extension_3:]
+            else:
+                self.threeprimeExt = self.sequence[-(extension_3+self.overhang_3[0]):-self.overhang_3[0]]
+                
+        self.seq = self.sequence[(len(self.fiveprimeOH)+len(self.fiveprimeExt)):(len(self.sequence)-(len(self.threeprimeOH)+len(self.threeprimeExt)))]
 
     # --- Methods --- #
 

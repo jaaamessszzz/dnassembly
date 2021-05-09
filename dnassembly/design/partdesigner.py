@@ -7,9 +7,10 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 import math
 from Bio.Restriction import Restriction
+from itertools import chain
 
 from ..dna.part import *
-
+from ..utils import pairwise
 """
 GGfrag >> Part class instantiation/function/attribute mapping
 
@@ -38,21 +39,24 @@ def divideBySize(input_part, size):
             newFrag = ""  # ?????
             if i == 0:
                 lenFiveSeq = len(input_part.fiveprimeOH) + len(input_part.fiveprimeExt)
-                newFrag = Part.GGfrag(input_part.fiveprimeOH, input_part.fiveprimeExt, subseqs[i][lenFiveSeq:], "", "", forced_method=input_part.forced_method)
+                newFrag = Part.GGfrag(fiveprimeOH=input_part.fiveprimeOH, fiveprimeExt=input_part.fiveprimeExt, seq=subseqs[i][lenFiveSeq:], forced_method=input_part.forced_method)
             elif i == len(subseqs) - 1:
                 lenThreeSeq = len(input_part.threeprimeExt) + len(input_part.threeprimeOH)
                 if lenThreeSeq == 0:
-                    newFrag = Part.GGfrag("", "", subseqs[i], "", "", forced_method=input_part.forced_method)
+                    newFrag = Part.GGfrag(seq=subseqs[i], forced_method=input_part.forced_method)
                 else:
-                    newFrag = Part.GGfrag("", "", subseqs[i][:-lenThreeSeq], input_part.threeprimeExt, input_part.threeprimeOH, forced_method=input_part.forced_method)
+                    newFrag = Part.GGfrag(seq=subseqs[i][:-lenThreeSeq], threeprimeExt=input_part.threeprimeExt, threeprimeOH=input_part.threeprimeOH, forced_method=input_part.forced_method)
             else:
                 newFrag = Part.GGfrag(seq=subseqs[i], forced_method=input_part.forced_method)
             newFrags.append(newFrag)
         return newFrags
 
 
-def divideByCaseChange(input_part):
-    subseqs = _split_seq_byCase(input_part.seq)
+def divideByIndexTuples(input_part, index_tuples):
+    """Split sequence by a list of index tuple, where each tuple represents a slice where a sequence modification has
+    been made by removeRS()
+    """
+    subseqs = _split_seq_byIndicies(input_part.seq, index_tuples)
     subseqs = _merge_single_bases(subseqs)
     if len(subseqs) <= 1:
         input_part.seq = input_part.seq.lower()
@@ -62,9 +66,9 @@ def divideByCaseChange(input_part):
         for i in range(len(subseqs)):
             newFrag = ""  # ?????
             if i == 0:
-                newFrag = Part.GGfrag(input_part.fiveprimeOH, input_part.fiveprimeExt, subseqs[i])
+                newFrag = Part.GGfrag(fiveprimeOH=input_part.fiveprimeOH, fiveprimeExt=input_part.fiveprimeExt, seq=subseqs[i])
             elif i == len(subseqs) - 1:
-                newFrag = Part.GGfrag("", "", subseqs[i], input_part.threeprimeExt, input_part.threeprimeOH)
+                newFrag = Part.GGfrag(seq=subseqs[i], threeprimeExt=input_part.threeprimeExt, threeprimeOH=input_part.threeprimeOH)
             else:
                 newFrag = Part.GGfrag(seq=subseqs[i])
             newFrags.append(newFrag)
@@ -178,3 +182,14 @@ def _split_seq_byCase(seq):
     rightIndex = len(seq)
     pieces.append(seq[leftIndex:rightIndex])
     return pieces
+
+
+def _split_seq_byIndicies(seq, sequence_tuples):
+    """Divides a sequence using provided indicies in tuples"""
+    index_list = sorted(list(set([idx for idx in chain(*sequence_tuples)] + [0, len(seq)])))
+    new_fragments = list()
+
+    for left_cut, right_cut in pairwise(index_list):
+        print(left_cut, right_cut)
+        new_fragments.append(seq[left_cut:right_cut])
+    return new_fragments

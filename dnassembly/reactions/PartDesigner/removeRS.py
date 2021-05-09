@@ -139,6 +139,7 @@ def silentMutate(seq, leftIndex, rightIndex, enzyme_list=[]):
 
 
 def removeRS(seq, enzymes):
+    removeRS_tuples = list()
     mutated = True
     while mutated:
         mutated = False
@@ -148,8 +149,9 @@ def removeRS(seq, enzymes):
                 leftIndex = findSite(seq.lower(), enzyme)
                 rightIndex = leftIndex + len(enzyme.site)
                 seq = silentMutate(seq, leftIndex, rightIndex, enzyme_list=enzymes)
+                removeRS_tuples.append((leftIndex, rightIndex))
                 mutated = True
-    return seq
+    return seq, removeRS_tuples
 
 
 def _reversecomplement(sequence):
