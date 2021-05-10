@@ -15,7 +15,7 @@ from Bio.Seq import Seq
 def reindexGGfrags(GGfrags, bestOHs):
 	indices = []
 	for each in bestOHs:
-			indices.append(each[1])
+		indices.append(each[1])
 
 	fragments = []
 	for each in GGfrags:
