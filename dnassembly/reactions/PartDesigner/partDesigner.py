@@ -90,7 +90,8 @@ partextension_5 = {'1': '',
 '4b': 'GGTACC', #Add KpnI
 '5': '',
 '6': '',
-'7': ''
+'7': '',
+'Custom': '',
 }
 
 partextension_3 = {'1': '',
@@ -105,7 +106,8 @@ partextension_3 = {'1': '',
 '4b': '',
 '5': '',
 '6': '',
-'7': ''
+'7': '',
+'Custom': '',
 }
 
 multigene_ohs = ["CTGA", "CCAA", "GATG", "GTTC", "GGTA", "AAGT", "AGCA"] # - NEED TO FIX, is this even used?
