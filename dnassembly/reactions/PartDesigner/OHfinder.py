@@ -11,6 +11,7 @@ from .GGfrag import *
 from Bio.Restriction import BsmBI, BsaI, Restriction, FormattedSeq
 from Bio.Seq import Seq
 
+from ...dna.part import Part
 
 def reindexGGfrags(GGfrags, bestOHs):
 	indices = []
@@ -70,7 +71,7 @@ def reindexGGfrags(GGfrags, bestOHs):
 			else:
 				newFrag[4] = (fragments[i][2] + fragments[i][3])[Rindex:Rindex+4]
 				newFrag[3] = fragments[i][3][:Rindex]
-		newGGfrag = GGfrag(newFrag[0], newFrag[1], newFrag[2], newFrag[3], newFrag[4])
+		newGGfrag = Part.GGfrag(newFrag[0], newFrag[1], newFrag[2], newFrag[3], newFrag[4])
 		shiftedFrags.append(newGGfrag)
 	return shiftedFrags
 
