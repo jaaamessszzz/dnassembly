@@ -344,10 +344,14 @@ class GGpart():
 					# todo: Check to see if template exists in Benchling Registry
 					print('SUBMITTED SEQ:', each.seq)
 					results = searchSeqBenchling(each.seq)
-
 					if results:
 						for i in range(len(results)):
-							alias = results[i]['entityRegistryId']
+							if results[i]['entityRegistryId']:
+								alias = results[i]['entityRegistryId']
+
+							else:
+								alias = results[i]['name']
+
 							seq = results[i]['bases']
 							#linear = not(results[i]['isCircular'])
 							self.possibleTemplates[alias] = seq
