@@ -360,7 +360,7 @@ class GGpart():
 							each.forced_method = "Oligo Assembly"
 							tempFrags += [each]
 						#If length is just over gBlock length, make the assembly include one oligo assembly to save on a gBlock
-						elif 0 < len(each) % (gBlockMaxSize - 24) < gBlockMinSize - 4 * each.getLength()/(gBlockMaxSize-24):
+						elif 0 < len(each) % (gBlockMaxSize - 24) < gBlockMinSize - 4 * len(each)/(gBlockMaxSize-24):
 							oligoAssemSize = max(20, len(each) % (gBlockMaxSize - 24) + 4 * len(each)/(gBlockMaxSize-24))
 							if index == 0:
 								oligoFrag = Part.GGfrag(each.sequence[:4], "", each.sequence[4:oligoAssemSize], "", "", forced_method="Oligo Assembly")

@@ -184,7 +184,7 @@ class Part(DNA):
             if self.overhang_5 is None:
                 self.fiveprimeExt = self.sequence[-extension_5:]
             else:
-                self.fiveprimeExt = self.sequence[-(extension_5+self.overhang_5[0]):-self.overhang_5[0]]
+                self.fiveprimeExt = self.sequence[self.overhang_5[0]:extension_5+self.overhang_5[0]]
         
         self.threeprimeOH = "" if self.overhang_3 is None else self.sequence[-self.overhang_3[0]:]      
         if extension_3 == 0:
