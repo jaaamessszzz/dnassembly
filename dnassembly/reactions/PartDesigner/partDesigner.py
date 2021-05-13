@@ -90,7 +90,8 @@ partextension_5 = {'1': '',
 '4b': 'GGTACC', #Add KpnI
 '5': '',
 '6': '',
-'7': ''
+'7': '',
+'Custom': '',
 }
 
 partextension_3 = {'1': '',
@@ -105,7 +106,8 @@ partextension_3 = {'1': '',
 '4b': '',
 '5': '',
 '6': '',
-'7': ''
+'7': '',
+'Custom': '',
 }
 
 multigene_ohs = ["CTGA", "CCAA", "GATG", "GTTC", "GGTA", "AAGT", "AGCA"] # - NEED TO FIX, is this even used?
@@ -358,7 +360,7 @@ class GGpart():
 							each.forced_method = "Oligo Assembly"
 							tempFrags += [each]
 						#If length is just over gBlock length, make the assembly include one oligo assembly to save on a gBlock
-						elif 0 < len(each) % (gBlockMaxSize - 24) < gBlockMinSize - 4 * each.getLength()/(gBlockMaxSize-24):
+						elif 0 < len(each) % (gBlockMaxSize - 24) < gBlockMinSize - 4 * len(each)/(gBlockMaxSize-24):
 							oligoAssemSize = max(20, len(each) % (gBlockMaxSize - 24) + 4 * len(each)/(gBlockMaxSize-24))
 							if index == 0:
 								oligoFrag = Part.GGfrag(each.sequence[:4], "", each.sequence[4:oligoAssemSize], "", "", forced_method="Oligo Assembly")
