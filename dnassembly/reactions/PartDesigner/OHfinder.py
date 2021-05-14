@@ -71,7 +71,7 @@ def reindexGGfrags(GGfrags, bestOHs):
 			else:
 				newFrag[4] = (fragments[i][2] + fragments[i][3])[Rindex:Rindex+4]
 				newFrag[3] = fragments[i][3][:Rindex]
-		newGGfrag = Part.GGfrag(newFrag[0], newFrag[1], newFrag[2], newFrag[3], newFrag[4])
+		newGGfrag = Part.GGfrag(newFrag[0], newFrag[1], newFrag[2], newFrag[3], newFrag[4], forced_method=GGfrags[i].forced_method)
 		shiftedFrags.append(newGGfrag)
 	return shiftedFrags
 

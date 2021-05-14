@@ -160,9 +160,10 @@ def _merge_single_bases(subseqs):
 #Splits a string into an array of equally divided substrings
 def _split_seq_byLength(seq, p):
     newseq = []
-    n = len(seq) / p    # min items per subsequence
+    n = len(seq) // p    # min items per subsequence
     r = len(seq) % p    # remaindered items
     b,e = 0, n + min(1, r)  # first split
+
     for i in range(p):
         newseq.append(seq[b:e])
         r = max(0, r-1)  # use up remainders
@@ -190,6 +191,5 @@ def _split_seq_byIndicies(seq, sequence_tuples):
     new_fragments = list()
 
     for left_cut, right_cut in pairwise(index_list):
-        print(left_cut, right_cut)
         new_fragments.append(seq[left_cut:right_cut])
     return new_fragments

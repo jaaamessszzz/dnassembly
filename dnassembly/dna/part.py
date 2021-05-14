@@ -154,7 +154,7 @@ class Part(DNA):
                    overhang_3=overhang_3, overhang_5=overhang_5, extension_5=extension_5, extension_3=extension_3, forced_method=forced_method)
 
     @classmethod
-    def GGfrag(cls, fiveprimeOH="", fiveprimeExt="", seq="", threeprimeExt="",  threeprimeOH="", forced_method=False,
+    def GGfrag(cls, fiveprimeOH="", fiveprimeExt="", seq="", threeprimeExt="",  threeprimeOH="", forced_method=None,
                entity_id=None, name=None, features=None, description=None, source=None):
         """Alternative construtor for Parts using PartDesigner GGFrag notation
         GGFrag seems to assume Type II restriction enzymes are always used, so overhang tuple is (4, 5)
