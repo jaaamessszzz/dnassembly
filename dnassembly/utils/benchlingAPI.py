@@ -1,11 +1,11 @@
 import requests
 import json
 
-baseURL = "https://outpacebiotest.benchling.com/api/" #testURL
-#baseURL = "https://outpacebio.benchling.com/api/" #realURL
+#baseURL = "https://outpacebiotest.benchling.com/api/" #testURL
+baseURL = "https://outpacebio.benchling.com/api/" #realURL
 
-key = "sk_6O7UksezwhYL8kOKP9PJGy5RxP50d" #testkey
-#key = #realkey
+#key = #testkey
+key =  #realkey
 
 # These are the backend locations of things in benchlingAPI
 #part3a = "lib_iH2yDHof" #Define the locations of each folder for each part
@@ -13,19 +13,19 @@ key = "sk_6O7UksezwhYL8kOKP9PJGy5RxP50d" #testkey
 
 # For Test Only!
 newseq = {}
-#newseq["bases"] = "ATCG"
-newseq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
+#newseq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
 newseq["isCircular"] = True
-newseq["name"] = "Andrew Test"
-newseq["registryId"] = "src_D2ebrtJZ" #Test
 newseq["namingStrategy"] = "NEW_IDS"
-newseq["schemaId"] = "ts_aPuxhTTQ" #Test
 
-#resistance = {
-#          "value": "sfso_0CQFeeLN" #use the variable name for the field
-#          }
+#Real Registry
+newseq["registryId"] = "src_oh4knSj0" #Real
+newseq["schemaId"] = "ts_itQ9daT4" #Real
+project = {"value": ["sfso_uEaQhrCf"]} #Real
 
-project = {"value": ["sfso_gVlMamQK"]} #use the variable name for the field
+#Test Registry
+#newseq["registryId"] = "src_D2ebrtJZ" #Test
+#newseq["schemaId"] = "ts_aPuxhTTQ" #Test
+#project = {"value": ["sfso_gVlMamQK"]} #Test
 
 #newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project} #Need to define each field as a dict
 
@@ -48,24 +48,16 @@ def getBenchling(path, query):
 
     return r.json()
 
-def postSeqBenchling(bases, name, LOH, resistance):
+def postPartBenchling(bases, name, LOH):
     request = baseURL+'v2/dna-sequences'
 
     newseq["bases"] = bases
     newseq["name"] = name
 
-    if resistance == 'Kanamycin':
-        antibioticId = "sfso_0CQFeeLN" #Double check this value in real registry
-        resistance = {"value": antibioticId}
-        newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
-
-    elif resistance == 'Carbenicillin':
-        antibioticId = "sfso_0CQFeeLN" #Double check this value in real registry
-        resistance = {"value": antibioticId}
-        newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
-
-    else:
-        return "Your Antibiotic Resistance Is Non-Standard!"
+    antibioticId = "sfso_3vpWtjgu" #Real
+    #antibioticId =  "sfso_0CQFeeLN" #test
+    resistance = {"value": antibioticId}
+    newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
 
     partType = LOH.strip()
 

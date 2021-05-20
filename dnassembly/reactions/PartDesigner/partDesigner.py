@@ -342,7 +342,7 @@ class GGpart():
 							if results[i]['entityRegistryId']:
 								alias = results[i]['entityRegistryId']
 							else:
-								alias = results[i]['name']
+								continue
 
 							seq = results[i]['bases']
 							#linear = not(results[i]['isCircular'])
