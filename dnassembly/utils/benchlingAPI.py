@@ -4,7 +4,7 @@ import json
 baseURL = "https://outpacebiotest.benchling.com/api/" #testURL
 #baseURL = "https://outpacebio.benchling.com/api/" #realURL
 
-key = #testkey
+key = "sk_6O7UksezwhYL8kOKP9PJGy5RxP50d" #testkey
 #key = #realkey
 
 # These are the backend locations of things in benchlingAPI
@@ -37,9 +37,18 @@ class BadRequestException(Exception):
 def getBenchling(path, query):
     request = baseURL+'v2/'+path+query
     r = requests.get(request, auth=(key,"")) #real version
+
+    if r.status_code >= 400:
+        raise BadRequestException(
+            "Server returned status {}. Response:\n{}".format(
+                r.status_code, json.dumps(r.json())
+            ),
+            r,
+        )
+
     return r.json()
 
-def postSeqBenchling(bases, name, resistance):
+def postSeqBenchling(bases, name, LOH, resistance):
     request = baseURL+'v2/dna-sequences'
 
     newseq["bases"] = bases
@@ -57,6 +66,32 @@ def postSeqBenchling(bases, name, resistance):
 
     else:
         return "Your Antibiotic Resistance Is Non-Standard!"
+
+    partType = LOH.strip()
+
+    if partType in ['1']:
+        newseq["folderId"] = 'lib_ZaMHBULI'
+
+    elif partType in ['2a','2b']:
+        newseq["folderId"] = 'lib_QBZvgB3q'
+
+    elif partType in ['3a','3b','3c','3d','3e']:
+        newseq["folderId"] = 'lib_tzkMsLGC'
+
+    elif partType in ['4a','4b']:
+        newseq["folderId"] = 'lib_Y275V89m'
+
+    elif partType in ['5']:
+        newseq["folderId"] = 'lib_RcvOpOZC'
+
+    elif partType in ['6']:
+        newseq["folderId"] = 'lib_QOR8IQ4Y'
+
+    elif partType in ['7']:
+        newseq["folderId"] = 'lib_QmgULI3v'
+
+    else:
+        newseq["folderId"] = 'lib_kCnFLwBS' #Send to the parent Stage 1 folder
 
     r = requests.post(request, json=newseq, auth=(key,""))
 
