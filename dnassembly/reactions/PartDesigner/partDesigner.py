@@ -336,26 +336,24 @@ class GGpart():
 			if self.method == "None":
 				tempFrags = []
 				for index, each in enumerate(self.GGfrags):
-					results = searchSeqBenchling(each.seq)
-					if results:
-						for i in range(len(results)):
-							if results[i]['entityRegistryId']:
-								alias = results[i]['entityRegistryId']
-							else:
-								continue
+					if len(each.seq) > 8:
+						results = searchSeqBenchling(each.seq)
+						if results:
+							for i in range(len(results)):
+								if results[i]['entityRegistryId']:
+									alias = results[i]['entityRegistryId']
+								else:
+									continue
 
-							seq = results[i]['bases']
-							#linear = not(results[i]['isCircular'])
-							self.possibleTemplates[alias] = seq
+								seq = results[i]['bases']
+								#linear = not(results[i]['isCircular'])
+								self.possibleTemplates[alias] = seq
 
 					if findTemplate(each.seq, self.possibleTemplates):
 						each.forced_method = "PCR"
 						tempFrags.append(each)
 					else:
-						if len(each) > 2100:
-							each.forced_method = "PCA"
-							tempFrags += divideBySize(each, PCAMaxSize - 24)
-						elif len(each) < gBlockMinSize:
+						if len(each) < gBlockMinSize:
 							each.forced_method = "Oligo Assembly"
 							tempFrags += [each]
 						#If length is just over gBlock length, make the assembly include one oligo assembly to save on a gBlock
