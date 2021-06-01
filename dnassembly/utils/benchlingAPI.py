@@ -21,6 +21,8 @@ newseq["namingStrategy"] = "NEW_IDS"
 newseq["registryId"] = "src_oh4knSj0" #Real
 newseq["schemaId"] = "ts_itQ9daT4" #Real
 project = {"value": ["sfso_uEaQhrCf"]} #Real
+carb = "sfso_Ro0lWOzU" #Real
+kan = "sfso_3vpWtjgu" #Real
 
 #Test Registry
 #newseq["registryId"] = "src_D2ebrtJZ" #Test
@@ -48,42 +50,55 @@ def getBenchling(path, query):
 
     return r.json()
 
-def postPartBenchling(bases, name, LOH):
+def postBenchling(bases, name, assembly_type):
     request = baseURL+'v2/dna-sequences'
 
     newseq["bases"] = bases
     newseq["name"] = name
 
-    antibioticId = "sfso_3vpWtjgu" #Real
-    #antibioticId =  "sfso_0CQFeeLN" #test
-    resistance = {"value": antibioticId}
+    if assembly_type == 'cassette': #Set the antibiotic to Carb for Stage 2
+        #antibioticId =  "sfso_0CQFeeLN" #test
+        resistance = {"value": carb}
+
+    else: #Set the antibiotic to Kan for both Stage 1 and Stage 3
+        #antibioticId =  "sfso_0CQFeeLN" #test
+        resistance = {"value": kan}
+
+    #Set the antibiotic resistance
     newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
 
-    partType = LOH.strip()
+    if assembly_type == 'cassette': #Set location to the parent Stage 2 folder
+        newseq["folderId"] = 'lib_lIpZ86uz'
 
-    if partType in ['1']:
-        newseq["folderId"] = 'lib_ZaMHBULI'
+    elif assembly_type == 'MC': #Set location to the parent Stage 3 folder
+        newseq["folderId"] = 'lib_hWRdTDLG'
 
-    elif partType in ['2a','2b']:
-        newseq["folderId"] = 'lib_QBZvgB3q'
+    else: #Set location to somewhere in Stage 1 folder
+        partType = assembly_type.strip()
 
-    elif partType in ['3a','3b','3c','3d','3e']:
-        newseq["folderId"] = 'lib_tzkMsLGC'
+        if partType in ['1']:
+            newseq["folderId"] = 'lib_ZaMHBULI'
 
-    elif partType in ['4a','4b']:
-        newseq["folderId"] = 'lib_Y275V89m'
+        elif partType in ['2a','2b']:
+            newseq["folderId"] = 'lib_QBZvgB3q'
 
-    elif partType in ['5']:
-        newseq["folderId"] = 'lib_RcvOpOZC'
+        elif partType in ['3a','3b','3c','3d','3e']:
+            newseq["folderId"] = 'lib_tzkMsLGC'
 
-    elif partType in ['6']:
-        newseq["folderId"] = 'lib_QOR8IQ4Y'
+        elif partType in ['4a','4b']:
+            newseq["folderId"] = 'lib_Y275V89m'
 
-    elif partType in ['7']:
-        newseq["folderId"] = 'lib_QmgULI3v'
+        elif partType in ['5']:
+            newseq["folderId"] = 'lib_RcvOpOZC'
 
-    else:
-        newseq["folderId"] = 'lib_kCnFLwBS' #Send to the parent Stage 1 folder
+        elif partType in ['6']:
+            newseq["folderId"] = 'lib_QOR8IQ4Y'
+
+        elif partType in ['7']:
+            newseq["folderId"] = 'lib_QmgULI3v'
+
+        else:
+            newseq["folderId"] = 'lib_kCnFLwBS' #Send to the parent Stage 1 folder
 
     r = requests.post(request, json=newseq, auth=(key,""))
 
@@ -98,8 +113,11 @@ def postPartBenchling(bases, name, LOH):
     return r.json()
 
 def searchSeqBenchling(bases):
-    request = baseURL+'v2-experimental/dna-sequences:search-bases'
-    query = {"bases": bases}
+    request = baseURL+'v2-beta/dna-sequences:search-bases'
+    query = {"bases": bases,
+        "registryId": "src_oh4knSj0",
+        "schemaId": "ts_itQ9daT4"}
+
     r = requests.post(request, json=query, auth=(key,""))
 
     if r.status_code >= 400:
