@@ -7,13 +7,8 @@ baseURL = "https://outpacebio.benchling.com/api/" #realURL
 #key = #testkey
 key =  #realkey
 
-# These are the backend locations of things in benchlingAPI
-#part3a = "lib_iH2yDHof" #Define the locations of each folder for each part
-#registry_id = "src_oh4knSj0"
-
-# For Test Only!
+#Define the common parameters for new plasmid sequences
 newseq = {}
-#newseq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
 newseq["isCircular"] = True
 newseq["namingStrategy"] = "NEW_IDS"
 
@@ -25,11 +20,10 @@ carb = "sfso_Ro0lWOzU" #Real
 kan = "sfso_3vpWtjgu" #Real
 
 #Test Registry
+#newseq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
 #newseq["registryId"] = "src_D2ebrtJZ" #Test
 #newseq["schemaId"] = "ts_aPuxhTTQ" #Test
 #project = {"value": ["sfso_gVlMamQK"]} #Test
-
-#newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project} #Need to define each field as a dict
 
 class BadRequestException(Exception):
     def __init__(self, message, rv):
@@ -56,12 +50,16 @@ def postBenchling(bases, name, assembly_type):
     newseq["bases"] = bases
     newseq["name"] = name
 
+    #Test
+    #antibioticId =  "sfso_0CQFeeLN" #test
+    #resistance = {"value": antibioticId}
+    #newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
+
+    #Real
     if assembly_type == 'cassette': #Set the antibiotic to Carb for Stage 2
-        #antibioticId =  "sfso_0CQFeeLN" #test
         resistance = {"value": carb}
 
     else: #Set the antibiotic to Kan for both Stage 1 and Stage 3
-        #antibioticId =  "sfso_0CQFeeLN" #test
         resistance = {"value": kan}
 
     #Set the antibiotic resistance
@@ -115,8 +113,12 @@ def postBenchling(bases, name, assembly_type):
 def searchSeqBenchling(bases):
     request = baseURL+'v2-beta/dna-sequences:search-bases'
     query = {"bases": bases,
-        "registryId": "src_oh4knSj0",
+        "registryId": "src_oh4knSj0", #real
         "schemaId": "ts_itQ9daT4"}
+
+        #Test
+        #"registryId": "src_D2ebrtJZ",
+        #"schemaId": "ts_aPuxhTTQ"}
 
     r = requests.post(request, json=query, auth=(key,""))
 
