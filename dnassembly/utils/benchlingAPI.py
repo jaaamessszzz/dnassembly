@@ -132,19 +132,3 @@ def searchSeqBenchling(bases):
 
     templates = r.json()
     return templates['dnaSequences']
-
-#def main():
-    """
-    newseq = {}
-    newseq["bases"] =
-    newseq["folderId"] =
-    newseq["isCircular"] = True
-    newseq["name"] =
-    newseq["registryId"] = registry_id
-    newseq["namingStrategy"] = "NEW_IDS"
-
-    BenchlingAPI("dna-sequences")
-    """
-
-#if __name__ == "__main__":
-    #main()

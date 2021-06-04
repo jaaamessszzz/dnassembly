@@ -38,7 +38,7 @@ from ..cloning import StickyEndAssembly
 gBlockMaxSize = 3000
 PCAMaxSize = 800
 gBlockMinSize = 125
-oligoAssemblySize = 100
+oligoAssemblySize = 125
 annealingLength = 20
 oligoTM = 48
 
@@ -126,7 +126,7 @@ tails = {"BsmBI":("GCATCGTCTCA", "TGAGACGGCAT"),
 class GGpart():
 	def __init__(self, partName, leftPartType, rightPartType, seq, part_entry_vector, method=None, fiveprime=None, threeprime=None,
 				 possibleTemplates={}, plasmidName="", inputSeqType="DNA", rsToRemove=["BbsI","BsmBI"], removeHomology=False,
-				 skipPartPlasmid=False, maxPrimerLength=60, databaseTemplates=[], addOHs=[]):
+				 skipPartPlasmid=False, maxPrimerLength=90, databaseTemplates=[], addOHs=[]):
 		"""
 		:param part_entry_vector: DNAssembly Plasmid
 		"""
