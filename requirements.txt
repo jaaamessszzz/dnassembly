@@ -1,2 +1,2 @@
 networkx>=2.3
-biopython>=1.72
+biopython>=1.78

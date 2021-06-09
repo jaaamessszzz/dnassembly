@@ -3,7 +3,7 @@
 import re
 from enum import Enum
 
-from Bio.Restriction import BsaI, BsmBI
+from Bio.Restriction import BbsI, BsmBI
 
 from ..design import create_amplifiction_primers
 from ..dna import Part
@@ -59,33 +59,37 @@ class PartOrder(CircularOrder):
     Part plasmid annotation
     """
 
-    bsai_annotation_f = {'CCCT': '1',
-                         'AACG': '2',
-                         'TATG': '3a',
+    bbsi_annotation_f = {'TCAA': '1',
+                         'ACGA': '2a',
+                         'AACG': '2b',
+                         'CACC': '3a',
                          'TTCT': '3b',
+                         'AGCA': '3c',
+                         'AGGC': '3d',
+                         'TCCA': '3e',
                          'ATCC': '4a',
-                         'TGGC': '4b',
-                         'GCTG': '5',
-                         'TACA': '6',
-                         'GAGT': '7',
-                         'CCGA': '8a',
-                         'CAAT': '8b'
+                         'GTAA': '4b',
+                         'GCTA': '5',
+                         'ACTC': '6',
+                         'ATTG': '7'
                          }
 
-    bsai_annotation_r = {'AACG': '1',
-                         'TATG': '2',
+    bbsi_annotation_r = {'ACGA': '1',
+                         'AACG': '2a',
+                         'CACC': '2b',
                          'TTCT': '3a',
-                         'ATCC': '3b',
-                         'TGGC': '4a',
-                         'GCTG': '4b',
-                         'TACA': '5',
-                         'GAGT': '6',
-                         'CCGA': '7',
-                         'CAAT': '8a',
-                         'CCCT': '8b'
+                         'AGCA': '3b',
+                         'AGGC': '3c',
+                         'TCCA': '3d',
+                         'ATCC': '3e',
+                         'GTAA': '4a',
+                         'GCTA': '4b',
+                         'ACTC': '5',
+                         'ATTG': '6',
+                         'TCAA': '7'
                          }
 
-    parts = [part for part in bsai_annotation_f.values()]
+    parts = [part for part in bbsi_annotation_f.values()]
 
     def __init__(self):
         super(PartOrder, self).__init__()
@@ -96,21 +100,19 @@ class CassetteOrder(CircularOrder):
     Cassette plasmid annotation
     """
 
-    bsmbi_annotation_f = {'CTGA': 'LS-1',
-                          'CCAA': '1-2',
-                          'GATG': '2-3',
-                          'GTTC': '3-4',
-                          'GGTA': '4-5',
-                          'AAGT': '5-RE',
-                          'AGCA': 'RE-LS'}
+    bsmbi_annotation_f = {'ACTC': 'LS-1',
+                          'TTCT': '1-2',
+                          'TCCA': '2-3',
+                          'ATCC': '3-RE',
+                          'ACAG': 'RE-LS'
+                          }
 
-    bsmbi_annotation_r = {'CCAA': 'LS-1',
-                          'GATG': '1-2',
-                          'GTTC': '2-3',
-                          'GGTA': '3-4',
-                          'AAGT': '4-5',
-                          'AGCA': '5-RE',
-                          'CTGA': 'RE-LS'}
+    bsmbi_annotation_r = {'TTCT': 'LS-1',
+                          'TCCA': '1-2',
+                          'ATCC': '2-3',
+                          'ACAG': '3-RE',
+                          'ACTC': 'RE-LS'
+                          }
 
     parts = [part for part in bsmbi_annotation_f.values()]
 
@@ -120,7 +122,7 @@ class CassetteOrder(CircularOrder):
 
 class MoCloAssemblyType(Enum):
     PART = BsmBI
-    CASSETTE = BsaI
+    CASSETTE = BbsI
     MULTICASSETTE = BsmBI
 
 
@@ -150,10 +152,10 @@ class ModularCloning(GoldenGate):
 
 # --- MoClo Related Functions --- #
 
-def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bsai=True, remove_bsmbi=True, remove_noti=True):
+def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardize=True, create_instructions=False, remove_bbsi=True, remove_bsmbi=True, remove_noti=False):
     """
     Create a MoClo compatible part from an arbitrary sequence
-    Checks for BsaI/BsmBI/NotI restriction sites
+    Checks for BbsI/BsmBI restriction sites
     Verifies Part 3 definitions are in frame
 
     Some observations:
@@ -173,17 +175,22 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
         if len(sequence) % 3 != 0:
             raise Exception('Part 3 coding sequence definitions must be in frame!')
 
-    # "GG" is appended to any Part 3 sequence to abide by the GS linker definition in the YTK
-    standardize_3 = {'3a': 'GG',
+    # Additional bases are appended to CDS to generate GS, SG or SS linkers
+    standardize_5 = {'3a': 'GC',
                      '3b': 'GG',
-                     '4a': 'TAACTCGAG'
+                     '3d': 'TC',
+                     '4a': 'GG',
+                     '4b': 'TA'
+                    }
+
+    standardize_3 = {'3c': 'GT',
+                     '3e': 'GT',
+                     '4b': 'TAA'
                      }
 
-    standardize_5 = {'4a': 'TAACTCGAG'}
-
     # Add part overhangs
-    overhang_5 = {v:k for k,v in PartOrder.bsai_annotation_f.items()}
-    overhang_3 = {v:k for k,v in PartOrder.bsai_annotation_r.items()}
+    overhang_5 = {v:k for k,v in PartOrder.bbsi_annotation_f.items()}
+    overhang_3 = {v:k for k,v in PartOrder.bbsi_annotation_r.items()}
 
     # Get standardized 5'/3' sequence
     # todo: streamline this...
@@ -198,17 +205,21 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
 
     standardized_3 = standardize_3[part_3] if (part_3 in standardize_3.keys() and standardize) else ""
 
-    prefix = f'GCATCGTCTCATCGGTCTCA{overhang_5[part_5]}{standardized_5}'
-    suffix = f'{standardized_3}{overhang_3[part_3]}TGAGACCTGAGACGGCAT'
+    domestication_5oh = 'TTCT'
+    domestication_3oh = 'AACG'
+
+    BbsIRS = 'GAAGACTC' #BbsI requires N(2) after the 6bp cut site
+    BbsIRS_rc = 'GAGTCTTC'
+
+    prefix = f'GCATCGTCTCA{domestication_5oh}{BbsIRS}{overhang_5[part_5]}{standardized_5}'
+    suffix = f'{standardized_3}{overhang_3[part_3]}{BbsIRS_rc}{domestication_3oh}TGAGACGGCAT'
 
     # Create regex pattern for restriction sites
     rxn_regex = []
-    if remove_bsai:
-        rxn_regex += ['GGTCTC', 'GAGACC']
+    if remove_bbsi:
+        rxn_regex += ['GAAGAC', 'GTCTTC']
     if remove_bsmbi:
         rxn_regex += ['CGTCTC', 'GAGACG']
-    if remove_noti:
-        rxn_regex += ['GCGGCCGC', 'CGCCGGCG']
 
     regex_pattern = f"?=({'|'.join(rxn_regex)})"
 
@@ -219,7 +230,7 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     final_sequence = prefix + sequence + suffix
     sequence_DNA = Part(final_sequence, description=description)
     if len(re.findall(re.escape(regex_pattern), sequence)) > 0:
-        raise Exception('There are BsaI/BsmBI/NotI restriction sites it your part definition! Please remove them.')
+        raise Exception('There are BbsI/BsmBI restriction sites it your part definition! Please remove them.')
 
     # Create primers, TEMPORARY UNTIL create_instructions IS IMPLEMENTED!!!
     primers = create_amplifiction_primers(sequence, prefix=prefix, suffix=suffix)
@@ -227,17 +238,15 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
     return sequence_DNA, primers
 
 
-# todo: figure this out...
-def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='', remove_bsai=True, remove_bsmbi=True, remove_noti=True):
+# Work in progress - doesn't quite work for now
+def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='', remove_bbsi=True, remove_bsmbi=True, remove_noti=True):
     """Create assembly instructions for a part"""
     # Create regex pattern for restriction sites
     rxn_regex = []
-    if remove_bsai:
-        rxn_regex += ['GGTCTC', 'GAGACC']
+    if remove_bbsi:
+        rxn_regex += ['GAAGAC', 'GTCTTC']
     if remove_bsmbi:
         rxn_regex += ['CGTCTC', 'GAGACG']
-    if remove_noti:
-        rxn_regex += ['GCGGCCGC', 'CGCCGGCG']
 
     regex_pattern = f"?=({'|'.join(rxn_regex)})"
 
@@ -304,8 +313,8 @@ def create_assembly_instructions(sequence, part_5, part_3, prefix='', suffix='',
     # todo: check for potential restriction sites formed when left/right arms are added to seqeunce
 
     # Pick overhang sequences
-    overhang_5 = {v:k for k,v in PartOrder.bsai_annotation_f.items()}
-    overhang_3 = {v:k for k,v in PartOrder.bsai_annotation_r.items()}
+    overhang_5 = {v:k for k,v in PartOrder.bbsi_annotation_f.items()}
+    overhang_3 = {v:k for k,v in PartOrder.bbsi_annotation_r.items()}
 
     codon_indicies = sorted(list(codon_substitutions.keys()))
     used_overhang_sequences = [overhang_5[part_5], overhang_3[part_3]]

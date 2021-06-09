@@ -2,7 +2,7 @@
 
 import re
 
-from Bio.Restriction import BsaI, BsmBI
+from Bio.Restriction import BbsI, BsmBI
 
 from ..reactions.moclo import PartOrder, CassetteOrder
 from .utils import reverse_complement
@@ -13,12 +13,12 @@ def annotate_moclo(dna, annotate='part'):
 
     Returns None if no part is found, otherwise a list of parts in order of 5'->3'
     """
-    
+
     if annotate == 'part':
         OrderLinkedList = PartOrder()
-        RxnEnzyme = BsaI
-        annotation_f = OrderLinkedList.bsai_annotation_f
-        annotation_r = OrderLinkedList.bsai_annotation_r
+        RxnEnzyme = BbsI
+        annotation_f = OrderLinkedList.bbsi_annotation_f
+        annotation_r = OrderLinkedList.bbsi_annotation_r
     elif annotate == 'cassette':
         OrderLinkedList = CassetteOrder()
         RxnEnzyme = BsmBI

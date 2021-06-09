@@ -1,0 +1,24 @@
+Metadata-Version: 1.1
+Name: dnassembly
+Version: 0.1.9
+Summary: Digest and assemble DNA
+Home-page: https://github.com/jaaamessszzz/DNAssembly
+Author: James Lucas
+Author-email: james.lucas@berkeley.edu
+License: UNKNOWN
+Description: # DNAssembly
+        
+        *Yet another DNA manipulation package, except this one does exactly what I want*
+        
+        DNAssembly is a framework that lets you do your cloning as you would in the wet lab, but on your computer. In place of
+        colorless liquids in test tubes, DNAssembly will take your plasmid files in your favorite format (Genbank, Snapgene)
+        and run them through an assembly protocol to produce fully annotated cloning products. All input sequences are verified
+        to avoid common cloning pitfalls.
+        
+        DNAssembly is initially implemented to perform Modular Golden Gate Cloning as described in "A Highly Characterized Yeast
+        Toolkit for Modular, Multipart Assembly" (Lee et al. 2013).
+Keywords: DNA,assembly,cloning,plasmid,digest,restriction,enzyme,molecular,biology
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Natural Language :: English
+Classifier: Programming Language :: Python :: 3
