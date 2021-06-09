@@ -341,7 +341,7 @@ class GGpart():
 						if results:
 							for i in range(len(results)):
 								if results[i]['entityRegistryId']:
-									batch = API.getBenchling('custom-entities?schemaId=ts_DqG0sawS&schemaField.Parent%20Plasmid=',result['id']) #Check to see if a batch exists for the plasmid
+									batch = getBenchling('custom-entities?schemaId=ts_DqG0sawS&schemaField.Parent%20Plasmid=',results[i]['id']) #Check to see if a batch exists for the plasmid
 
 									if batch['customEntities']:
 										alias = results[i]['entityRegistryId']

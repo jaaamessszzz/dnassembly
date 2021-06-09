@@ -1,11 +1,12 @@
 import requests
 import json
+import os
 
 #baseURL = "https://outpacebiotest.benchling.com/api/" #testURL
 baseURL = "https://outpacebio.benchling.com/api/" #realURL
 
 #key = #testkey
-key =  #realkey
+key =  os.environ.get('Benchling_API_Key') #realkey
 
 #Define the common parameters for new plasmid sequences
 newseq = {}
