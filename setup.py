@@ -12,7 +12,7 @@ with open('README.md') as file:
 # Setup
 setup(
     name='dnassembly',
-    version='0.1.9',
+    version='0.2.0',
     author='James Lucas',
     author_email='james.lucas@berkeley.edu',
     description='Digest and assemble DNA',
