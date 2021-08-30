@@ -8,23 +8,32 @@ baseURL = "https://outpacebio.benchling.com/api/" #realURL
 #key = #testkey
 key =  os.environ.get('Benchling_API_Key') #realkey
 
-#Define the common parameters for new plasmid sequences
-newseq = {}
-newseq["isCircular"] = True
-newseq["namingStrategy"] = "NEW_IDS"
+#Define the common parameters for new DNA plasmid sequences
+newSeq = {}
+newSeq["isCircular"] = True
+newSeq["namingStrategy"] = "NEW_IDS"
 
 #Real Registry
-newseq["registryId"] = "src_oh4knSj0" #Real
-newseq["schemaId"] = "ts_itQ9daT4" #Real
-project = {"value": ["sfso_uEaQhrCf"]} #Real
+newSeq["registryId"] = "src_oh4knSj0" #Outpace Registry
+newSeq["schemaId"] = "ts_itQ9daT4" #ID code for Plasmid
+project = {"value": ["sfso_uEaQhrCf"]} #MoClo Project
 carb = "sfso_Ro0lWOzU" #Real
 kan = "sfso_3vpWtjgu" #Real
 
 #Test Registry
-#newseq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
-#newseq["registryId"] = "src_D2ebrtJZ" #Test
-#newseq["schemaId"] = "ts_aPuxhTTQ" #Test
+#newSeq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
+#newSeq["registryId"] = "src_D2ebrtJZ" #Test
+#newSeq["schemaId"] = "ts_aPuxhTTQ" #Test
 #project = {"value": ["sfso_gVlMamQK"]} #Test
+
+#Define the common parameters for new DNA Parts
+newPart = {}
+newPart["isCircular"] = False
+newPart["namingStrategy"] = "NEW_IDS"
+
+#Real Registry
+newPart["registryId"] = "src_oh4knSj0" #Outpace Registry
+newPart["schemaId"] = "ts_2XTP42dt" #ID code for DNA Part
 
 class BadRequestException(Exception):
     def __init__(self, message, rv):
@@ -45,16 +54,16 @@ def getBenchling(path, query):
 
     return r.json()
 
-def postBenchling(bases, name, assembly_type):
+def postSeqBenchling(bases, name, assembly_type, assembledFrom='', assembledFromID=''):
     request = baseURL+'v2/dna-sequences'
 
-    newseq["bases"] = bases
-    newseq["name"] = name
+    newSeq["bases"] = bases
+    newSeq["name"] = name
 
     #Test
     #antibioticId =  "sfso_0CQFeeLN" #test
     #resistance = {"value": antibioticId}
-    #newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
+    #newSeq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
 
     #Real
     if assembly_type == 'cassette': #Set the antibiotic to Carb for Stage 2
@@ -63,43 +72,85 @@ def postBenchling(bases, name, assembly_type):
     else: #Set the antibiotic to Kan for both Stage 1 and Stage 3
         resistance = {"value": kan}
 
-    #Set the antibiotic resistance
-    newseq["fields"] = {"Antibiotic Resistance": resistance, "Project": project}
+    MoClo_Assembled_From = {"value": assembledFrom}
+    MoClo_Assembled_From_seqID = {"value": assembledFromID}
+
+    #Set the fields
+    newSeq["fields"] = {"Antibiotic Resistance": resistance, "Project": project, "MoClo_Assembled_From": MoClo_Assembled_From, "MoClo_Assembled_From_seqID": MoClo_Assembled_From_seqID}
 
     if assembly_type == 'cassette': #Set location to the parent Stage 2 folder
-        newseq["folderId"] = 'lib_lIpZ86uz'
+        newSeq["folderId"] = 'lib_lIpZ86uz'
 
     elif assembly_type == 'MC': #Set location to the parent Stage 3 folder
-        newseq["folderId"] = 'lib_hWRdTDLG'
+        newSeq["folderId"] = 'lib_hWRdTDLG'
 
     else: #Set location to somewhere in Stage 1 folder
         partType = assembly_type.strip()
 
         if partType in ['1']:
-            newseq["folderId"] = 'lib_ZaMHBULI'
+            newSeq["folderId"] = 'lib_ZaMHBULI'
 
         elif partType in ['2a','2b']:
-            newseq["folderId"] = 'lib_QBZvgB3q'
+            newSeq["folderId"] = 'lib_QBZvgB3q'
 
         elif partType in ['3a','3b','3c','3d','3e']:
-            newseq["folderId"] = 'lib_tzkMsLGC'
+            newSeq["folderId"] = 'lib_tzkMsLGC'
 
         elif partType in ['4a','4b']:
-            newseq["folderId"] = 'lib_Y275V89m'
+            newSeq["folderId"] = 'lib_Y275V89m'
 
         elif partType in ['5']:
-            newseq["folderId"] = 'lib_RcvOpOZC'
+            newSeq["folderId"] = 'lib_RcvOpOZC'
 
         elif partType in ['6']:
-            newseq["folderId"] = 'lib_QOR8IQ4Y'
+            newSeq["folderId"] = 'lib_QOR8IQ4Y'
 
         elif partType in ['7']:
-            newseq["folderId"] = 'lib_QmgULI3v'
+            newSeq["folderId"] = 'lib_QmgULI3v'
 
         else:
-            newseq["folderId"] = 'lib_kCnFLwBS' #Send to the parent Stage 1 folder
+            newSeq["folderId"] = 'lib_kCnFLwBS' #Send to the parent Stage 1 folder
 
-    r = requests.post(request, json=newseq, auth=(key,""))
+    r = requests.post(request, json=newSeq, auth=(key,""))
+
+    if r.status_code >= 400:
+        raise BadRequestException(
+            "Server returned status {}. Response:\n{}".format(
+                r.status_code, json.dumps(r.json())
+            ),
+            r,
+        )
+
+    return r.json()
+
+def postPartBenchling(bases, name, partType):
+    request = baseURL+'v2/dna-sequences'
+
+    newPart["bases"] = bases
+    newPart["name"] = name
+
+    newPart["folderId"] = 'lib_R5pTYwpd' #Sends part to DNA Part Folder
+
+    if partType.strip() in ['1']:
+        DNAtype = {"value": 'sfso_ZIYN45Gl'}
+
+    elif partType.strip() in ['2a','2b']:
+        DNAtype = {"value": 'sfso_xvdSPEIX'}
+
+    elif partType.strip() in ['3a','3b','3c','3d','3e']:
+        DNAtype = {"value": 'sfso_a5vEtqm5'}
+
+    elif partType.strip() in ['4a','4b']:
+        DNAtype = {"value": "sfso_U3jQSIjd"}
+
+    elif partType.strip() in ['5']:
+        DNAtype = {"value": 'sfso_gyH8kxAF'}
+
+    elif partType.strip() in ['6','7']:
+        DNAtype = {"value": 'sfso_eDKuXLe5'}
+
+    newPart["fields"] = {"Project": project, "DNA Type": DNAtype}
+    r = requests.post(request, json=newPart, auth=(key,""))
 
     if r.status_code >= 400:
         raise BadRequestException(
@@ -133,3 +184,18 @@ def searchSeqBenchling(bases):
 
     templates = r.json()
     return templates['dnaSequences']
+
+def annotatePartBenchling(seqIDs):
+    request = baseURL+'v2/dna-sequences:autofill-parts'
+
+    annotateList = {"dnaSequenceIds": seqIDs}
+    r = requests.post(request, json=annotateList, auth=(key,""))
+
+    if r.status_code >= 400:
+        raise BadRequestException(
+            "Server returned status {}. Response:\n{}".format(
+                r.status_code, json.dumps(r.json())
+            ),
+            r,
+        )
+    return
