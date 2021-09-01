@@ -17,7 +17,7 @@ setup(
     author_email='james.lucas@berkeley.edu',
     description='Digest and assemble DNA',
     long_description=readme,
-    url='https://github.com/jaaamessszzz/DNAssembly',
+    url='https://github.com/outpace-bio/dnassembly',
     keywords=[
         'DNA',
         'assembly',
