@@ -19,7 +19,7 @@ newSeq["namingStrategy"] = os.environ.get('SEQ_NAMING_STRAT')
 #Real Registry
 newSeq["registryId"] = os.environ.get('SEQ_REGISTRY_ID') #Outpace Registry
 newSeq["schemaId"] = os.environ.get('SEQ_SCHEMA_ID') #ID code for Plasmid
-project = {"value": ["sfso_uEaQhrCf"]} #MoClo Project
+project = {"value": [os.environ.get('BENCHLING_PROJ_ID')]} #MoClo Project
 carb = os.environ.get('CARB') #Real
 kan = os.environ.get('KAN') #Real
 
@@ -38,7 +38,9 @@ newPart["namingStrategy"] = os.environ.get('PART_NAMING_STRAT')
 newPart["registryId"] = os.environ.get('PART_REGISTRY_ID') #Outpace Registry
 newPart["schemaId"] = os.environ.get('PART_SCHEMA_ID') #ID code for DNA Part
 
-#TODO - populate with fake registry
+#TODO - populate with test registry
+#newPart["registryId"] = "" #Outpace Registry
+#newPart["schemaId"] = "" #ID code for DNA Part
 
 class BadRequestException(Exception):
     def __init__(self, message, rv):
