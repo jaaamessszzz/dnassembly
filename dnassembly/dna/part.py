@@ -23,7 +23,7 @@ class Part(DNA):
     """
 
     def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None, overhang_5=None,
-                 overhang_3=None, extension_5=None, extension_3=None, forced_method=None):
+                 overhang_3=None, extension_5=None, extension_3=None, forced_method=None, strand=1):
         """
         :param sequence: string representation of dsDNA 5' -> 3'
         :param entity_id: string, systematic identification of this Part
@@ -36,7 +36,7 @@ class Part(DNA):
         :param extension_5: number of bases downstream of overhang to consider an extension of part sequence
         :param extension_3: number of bases downstream of overhang to consider an extension of part sequence
         """
-        super().__init__(sequence, entity_id=entity_id, name=name, features=features, description=description, source=source)
+        super().__init__(sequence, entity_id=entity_id, name=name, features=features, description=description, source=source, strand=strand)
         # Derive overhangs from sequence
         self.overhang_5 = overhang_5
         self.overhang_3 = overhang_3
@@ -249,6 +249,11 @@ class Part(DNA):
             self.tails[0] = tails[0][0:4]
         if self.sequence[-11:-5].upper() == for_site:
             self.tails[1] = tails[1][-4:]
+
+    def reverse_complement_part(self):
+        """Return reverse complement as a part"""
+        return Part(self.reverse_complement(), entity_id=self.entity_id, name=self.name, features=self.features, source=self.entity_id, strand=-self.strand,
+                    extension_5=self.extension_5, extension_3=self.extension_3, overhang_5=self.overhang_5, overhang_3=self.overhang_3)        
 
 
 class Backbone(Part):

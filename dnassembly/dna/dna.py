@@ -21,13 +21,15 @@ class DNA(object):
 
     dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
 
-    def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None, metadata=None):
+    def __init__(self, sequence, strand=1, entity_id=None, name=None, features=None, description=None, source=None, metadata=None):
         """
         :param sequence: string representation of dsDNA 5' -> 3'
+        :param strand: 1 for sense, -1 for antisense
         :param metadata: dict containing random metadata about the plasmid
         """
         self.entity_id = entity_id
         self.name = name
+        self.strand = strand
         self.sequence = sequence
         self.features = features
         self.description = description
@@ -59,6 +61,20 @@ class DNA(object):
             self._sequence = input_sequence.upper()
         else:
             raise SequenceException('DNA sequences can only contain ATCG.')
+
+    @property
+    def strand(self):
+        return self._strand
+
+    @strand.setter
+    def strand(self, strand_int):
+        """
+        Strand can take values {-1, 1}
+        """
+        if strand_int in [1, -1]:
+            self._strand = strand_int
+        else:
+            raise Exception('strand attribute can only take the values {-1, 1}')
 
     # --- Methods --- #
 

@@ -8,6 +8,7 @@ import networkx
 from Bio.Restriction.Restriction import RestrictionType
 
 from ..dna import DNA, Plasmid, Part
+from ..utils import reverse_complement as rc
 from dnassembly.utils.utils import pairwise
 
 
@@ -373,9 +374,11 @@ class StickyEndAssembly(CloningReaction):
         directed_graph = networkx.MultiDiGraph()
 
         # todo: get reverse complement of parts and add to assembly, not all provided sequences will be coding strand
-        # todo: keep track of which parDts were reversecomplement() in final product, return product with least
+        # todo: keep track of which parts were reversecomplement() in final product, return product with least
+        input_dna_list_rc = [part.reverse_complement_part() for part in self.input_dna_list]
+
         # Add nodes and edges for each part in digest_pool
-        for part in self.input_dna_list:
+        for part in self.input_dna_list + input_dna_list_rc:
 
             sticky_match_l = part.overhang_5
             sticky_match_r = part.overhang_3
@@ -447,6 +450,24 @@ class StickyEndAssembly(CloningReaction):
             if final_digestion and any([len(enzyme.compsite.findall(assembly['sequence'])) > 0 for enzyme in self.restriction_enzyme_list]):
                 continue
             complete_assemblies.append(assembly)
+
+        from pprint import pprint
+        pprint(complete_assemblies)
+
+        # Check for circular permutations
+        nr_assemblies = list()
+        for assembly in complete_assemblies:
+            redundant = False
+            for nr_assembly in nr_assemblies:
+                nr_seqseq = nr_assembly['sequence'] * 2
+                if assembly['sequence'] in nr_seqseq or assembly['sequence'] in rc(nr_seqseq):
+                    redundant = True
+                    break
+            if redundant:
+                continue
+            nr_assemblies.append(assembly)
+
+        complete_assemblies = nr_assemblies
 
         # --- Raise exceptions if something went wrong --- #
 
