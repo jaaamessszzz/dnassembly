@@ -19,7 +19,12 @@ class DNA(object):
 
     # --- Class variables --- #
 
-    dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
+    dna_basepairs = {
+        'A': 'T', 
+        'T': 'A', 
+        'C': 'G', 
+        'G': 'C'
+    }
 
     def __init__(self, sequence, entity_id=None, name=None, features=None, description=None, source=None, metadata=None):
         """
@@ -32,7 +37,7 @@ class DNA(object):
         self.features = features
         self.description = description
         self.source = source
-        self.feature_map = None  # Populated by map_features method
+        self.feature_map = None  # {(start, end): feature}; Populated by map_features method 
 
     def __repr__(self):
         return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tLength: {len(self.sequence)}\n' \
@@ -62,10 +67,11 @@ class DNA(object):
 
     # --- Methods --- #
 
-    def complement(self):
-        """
-        Generate the complement to the DNA sequence
-        :return:
+    def complement(self) -> str:
+        """Generate the complement to the DNA sequence
+
+        Returns:
+            str: complement to DNA sequence
         """
         return ''.join([self.dna_basepairs.get(base.upper()) if base.upper() in self.dna_basepairs.keys() else base for base in self.sequence])
 
@@ -76,6 +82,7 @@ class DNA(object):
         """
         return self.complement()[::-1]
 
+    # TODO - figure out why this is left not implemented
     def translate(self):
         """
         Translate DNA sequence into protein
@@ -83,10 +90,12 @@ class DNA(object):
         """
         pass
 
-    def map_features(self):
+    def map_features(self) -> None:
         """
-        Maps seqeunce features onto the DNA sequence
-        :return: {(start, end): feature}
+        Maps seqeunce features onto the DNA sequence and sets feature map attribute
+        as follows: {(start, end): feature}
+
+        :return: None
         """
         feature_dict = dict()
 

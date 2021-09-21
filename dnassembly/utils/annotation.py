@@ -1,18 +1,26 @@
 #! /usr/bin/env python3
 
 import re
-
 from Bio.Restriction import BbsI, BsmBI
+from typing import List
 
-from ..reactions.moclo import PartOrder, CassetteOrder
 from .utils import reverse_complement
+from ..reactions.moclo import PartOrder, CassetteOrder
 
-def annotate_moclo(dna, annotate='part'):
-    """
-    Read the dna sequence and report any parts contained within. Parts are flanked by BsaI sequences.
+def annotate_moclo(dna: str, annotate: str = 'part') -> List[str]:
+    """Read the dna sequence and report any parts contained within.
+    Parts are flanked by BsaI sequences.
 
-    Returns None if no part is found, otherwise a list of parts in order of 5'->3'
+    Args:
+        dna (str): dna sequence
+        annotate (str, optional): Annotation type. Defaults to 'part'.
+    
+    TODO - revise this return documentation
+    Returns:
+        List[str]: Returns None if no part is found, otherwise a list of parts in order of 5'->3'
     """
+
+    #TODO - stick bbsi_annotation_f and bbsi_annotation_r in config file?
 
     if annotate == 'part':
         OrderLinkedList = PartOrder()
@@ -71,6 +79,7 @@ def annotate_moclo(dna, annotate='part'):
 
         current_part = current_part.next
 
+    #TODO - should convert this return type to something else
     if len(part_list) == len(OrderLinkedList.parts):
         return False
 
