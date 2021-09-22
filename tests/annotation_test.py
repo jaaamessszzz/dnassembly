@@ -5,21 +5,17 @@ import pytest
 @pytest.fixture(scope='class')
 def moclo_assemblies():
     return [
-        ("seq1", "part", []),
-        ("seq2", "part", []),
+        ("gcatcgtctcattctgaagactcgctagagtagagacgattgaggtcttcaacgcgagacgcgta", "part", ["5", "6"]),
+        ("gcatcgtctcattctgaagactcgctagagtagagacgattgaggtcttcaacgcgagacgcgta", "part", ["5", "6"]),
+        #("", "part", []), TODO - configure function to return an empty list instead of a bool
         ("seq3", "cassette", []),
         ("seq4", "cassette", [])
     ]
 
-@pytest.fixture(scope='class')
-def invalid_moclo_assemblies():
-    return [
-        ("seq1", "", []),
-        ("seq2", "multicassette", [])
-    ]
-
 def test_annotate_moclo(moclo_assemblies: List[Tuple[str, str, List[str]]]):
-    """[summary]
+    """
+    Asserts the expected annotation result given a sequence, annotation type, 
+    and expected annotations
     """
 
     for moclo_assembly in moclo_assemblies:
@@ -30,17 +26,34 @@ def test_annotate_moclo(moclo_assemblies: List[Tuple[str, str, List[str]]]):
 
         actual_result = annotate_moclo(dna_sequence, annotation_type)
 
-        assert len(actual_result) == len(expected_result)
-        assert annotate_moclo(dna_sequence, annotation_type) == expected_result
+        actual_result.sort()
+        expected_result.sort()
 
-def test_annotate_moclo_exception(invalid_moclo_assemblies: List[Tuple[str, str, List[str]]]):
-    """[summary]
+        # assert that actual and expected results output the same number
+        # of parts
+        assert len(actual_result) == len(expected_result)
+        # assert that both lists have the same parts
+        for idx in range(len(actual_result)):
+            assert actual_result[idx] == expected_result[idx]
+
+@pytest.fixture(scope='class')
+def invalid_moclo_assemblies():
+    return [
+        ("atat", ""),
+        ("atat", "multicassette")
+    ]
+
+def test_annotate_moclo_exception(invalid_moclo_assemblies: List[Tuple[str, str]]):
+    """
+    Asserts that annotate_moclo() will throw an error with specific input parameters
     """
     for moclo_assembly in invalid_moclo_assemblies:
 
         dna_sequence = moclo_assembly[0]
         annotation_type = moclo_assembly[1]
-        expected_result = moclo_assembly[2]
+
+        print(f"dna_sequence: {dna_sequence}, annotation_type: {annotation_type}")
+        #expected_result = moclo_assembly[2]
 
         with pytest.raises(Exception):
-            actual_result = annotate_moclo(dna_sequence, annotation_type)
+            annotate_moclo(dna_sequence, annotation_type)

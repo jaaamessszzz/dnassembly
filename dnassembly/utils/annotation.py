@@ -37,7 +37,7 @@ def annotate_moclo(dna: str, annotate: str = 'part') -> List[str]:
         annotation_f = OrderLinkedList.bsmbi_annotation_f
         annotation_r = OrderLinkedList.bsmbi_annotation_r
     else:
-        return Exception("Annotation type must be 'part' or 'cassette'!")
+        raise Exception("Annotation type must be 'part' or 'cassette'!")
 
     rxnsite_f = re.finditer(f'{RxnEnzyme.site}', dna.upper())
     rxnsite_r = re.finditer(f'{reverse_complement(RxnEnzyme.site)}', dna.upper())
