@@ -23,3 +23,10 @@ Toolkit for Modular, Multipart Assembly" (Lee et al. 2013).
 - PART_NAMING_STRAT: Benchling DNA part naming strategy 
 - PART_REGISTRY_ID: Benchling DNA part registry ID code
 - PART_SCHEMA_ID: Benchling DNA part schema ID code
+
+# Running Unit Testing
+
+In the project directory execute the following command:
+```
+pytest
+```
