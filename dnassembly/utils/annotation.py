@@ -3,9 +3,13 @@
 import re
 from Bio.Restriction import BbsI, BsmBI
 from typing import List
-
+from enum import Enum
 from .utils import reverse_complement
 from ..reactions.moclo import PartOrder, CassetteOrder
+
+class AnnotationType(Enum):
+    PART = 'part'
+    CASSETTE = 'cassette'
 
 def annotate_moclo(dna: str, annotate: str = 'part') -> List[str]:
     """Read the dna sequence and report any parts contained within.
