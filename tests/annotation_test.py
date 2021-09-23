@@ -39,7 +39,8 @@ def test_annotate_moclo(moclo_assemblies: List[Tuple[str, str, List[str]]]):
 def invalid_moclo_assemblies():
     return [
         ("atat", ""),
-        ("atat", "multicassette")
+        ("atat", "multicassette"),
+        ("", "")
     ]
 
 def test_annotate_moclo_exception(invalid_moclo_assemblies: List[Tuple[str, str]]):
