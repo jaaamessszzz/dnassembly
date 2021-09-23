@@ -26,7 +26,16 @@ Toolkit for Modular, Multipart Assembly" (Lee et al. 2013).
 
 # Running Unit Testing
 
-In the project directory execute the following command:
+In the project directory execute the following commands:
 ```
-pytest
+pip install .
+pytest tests
 ```
+
+## Coverage
+
+Utils:
+- [x] annotation
+- [ ] benchlingAPI
+- [ ] conversion
+- [ ] utils
