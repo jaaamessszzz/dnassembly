@@ -133,7 +133,6 @@ class DNA(object):
         
         return complement_seq
 
-    # could potentially make this algorithm more effecient
     def reverse_complement(self) -> str:
         """Generate the reverse complement to the sequence of this DNA object
 
