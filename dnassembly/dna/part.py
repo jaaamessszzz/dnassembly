@@ -1,9 +1,12 @@
 #! /usr/bin/env python3
 
+#TODO - Questions for James + Andrew... what are the specifications for 3, 5, or none of overhang_3, overhang_5 attr
+
 import re
 
 from Bio.Seq import Seq
 from Bio.Restriction import Restriction
+from typing import Type, Tuple, List
 
 from .dna import DNA
 
@@ -50,22 +53,38 @@ class Part(DNA):
         self._derived_properties()
         self.forced_method = forced_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Retrieves a string representation of this Part object
+
+        Returns:
+            str: representation of this Part object
+        """
         return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tlength: {len(self.sequence)}\n' \
                f'{self.sequence[:25]} ... {self.sequence[-25:]}\n'
 
-    def __eq__(self, other):
+    # figure out how to get Part type included as parameter type
+    def __eq__(self, other) -> bool:
         return self.__hash__() == other.__hash__()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
+        """Generates the hash value for this Part object
+
+        Returns:
+            int: hash value for this Part object
+        """
         return hash((self.sequence, self.overhang_5, self.overhang_3))
 
     # --- Property Setters --- #
-
     @property
-    def overhang_5(self):
+    def overhang_5(self) -> Tuple[int, int]:
+        """Retrieves the length and orientation of 5' end of DNA
+
+        Returns:
+            Tuple[int, int]: Length and orientation respectively
+        """
         return self._overhang_5
 
+    # create overhang validation to share with overhand_3
     @overhang_5.setter
     def overhang_5(self, overhang_5):
         if not (type(overhang_5) is tuple or overhang_5 is None):
@@ -79,9 +98,15 @@ class Part(DNA):
         self._overhang_5 = overhang_5
 
     @property
-    def overhang_3(self):
+    def overhang_3(self) -> Tuple[int, int]:
+        """Retrieves the length and orientation of 3' end of DNA
+
+        Returns:
+            Tuple[int, int]: Length and orientation respectively
+        """
         return self._overhang_3
 
+    # create overhang validation to share with overhand_5
     @overhang_3.setter
     def overhang_3(self, overhang_3):
         if not (type(overhang_3) is tuple or overhang_3 is None):
