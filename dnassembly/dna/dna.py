@@ -122,12 +122,9 @@ class DNA(object):
         Returns:
             str: complement to the sequence of this DNA object
         """
-
-        """
-        Pulling code out of list comprehension:
-
         complement_seq = ""
 
+        # continouslly add items to the end of the string
         for base in self.sequence:
             if base.upper() in self.dna_basepairs.keys():
                 complement_seq += self.dna_basepairs.get(base.upper())
@@ -135,8 +132,6 @@ class DNA(object):
                 complement_seq += base
         
         return complement_seq
-        """
-        return ''.join([self.dna_basepairs.get(base.upper()) if base.upper() in self.dna_basepairs.keys() else base for base in self.sequence])
 
     # could potentially make this algorithm more effecient
     def reverse_complement(self) -> str:
@@ -145,12 +140,9 @@ class DNA(object):
         Returns:
             str: reverse complement to the sequence of this DNA object
         """
-
-        """
-        More effecient approach outlined below. Time complexity reduced from O(n^2) to O(n)
-
         rev_complement_seq = ""
 
+        # continouslly add items to the beginning of the string
         for base in self.sequence:
             if base.upper() in self.dna_basepairs.keys():
                 rev_complement_seq = self.dna_basepairs.get(base.upper()) + rev_complement_seq
@@ -158,8 +150,6 @@ class DNA(object):
                 rev_complement_seq = base + rev_complement_seq
         
         return rev_complement_seq
-        """
-        return self.complement()[::-1]
 
     # why is this empty?
     def translate(self):
