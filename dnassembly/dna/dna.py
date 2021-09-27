@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import re
+from typing import Tuple
 
 
 class DNA(object):
@@ -18,10 +19,15 @@ class DNA(object):
     """
 
     # --- Class variables --- #
+    # figure out this compares to static variables in traditional OOP languages
+    dna_basepairs = {
+        'A': 'T', 
+        'T': 'A', 
+        'C': 'G', 
+        'G': 'C'
+    }
 
-    dna_basepairs = {'A': 'T', 'T': 'A', 'C': 'G', 'G': 'C'}
-
-    def __init__(self, sequence, strand=1, entity_id=None, name=None, features=None, description=None, source=None, metadata=None):
+    def __init__(self, sequence: str, strand: int = 1, entity_id=None, name=None, features=None, description=None, source=None, metadata=None):
         """
         :param sequence: string representation of dsDNA 5' -> 3'
         :param strand: 1 for sense, -1 for antisense
@@ -36,40 +42,72 @@ class DNA(object):
         self.source = source
         self.feature_map = None  # Populated by map_features method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Retrieves a string representation of this DNA object
+
+        Returns:
+            str: representation of this DNA object
+        """
         return f'DNA:\t{self.entity_id}\t\t{self.name}\t\tLength: {len(self.sequence)}\n' \
                f'Description: {self.description[:50]}{"..." if len(self.sequence) > 50 else ""}\n' \
                f'{self.sequence[:60]}{"..." if len(self.sequence) > 60 else ""}\n'
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Retrieves the length of the sequence from this DNA object
+
+        Returns:
+            int: length of this DNA sequence
+        """
         return len(self.sequence)
+
     # --- Property Setters --- #
 
     @property
-    def sequence(self):
+    def sequence(self) -> str:
+        """Retrieves the sequence from this DNA object
+
+        Returns:
+            str: sequence of this DNA object
+        """
         return self._sequence
 
     @sequence.setter
-    def sequence(self, input_sequence):
-        """
-        Validate input DNA sequence
+    def sequence(self, input_sequence: str) -> None:
+        """Assigns a new sequence to this DNA object if the provided sequence
+        passes validation.
 
-        :param input_sequence: string representation of input DNA sequence
-        :return:
+        Args:
+            input_sequence (str): New sequence to assign to this DNA object
+
+        Raises:
+            SequenceException: Excepton when a character other than A, T, C, or G
+            is present in the sequence string
         """
-        if re.fullmatch('[ATCG]+', input_sequence.upper()) is not None:
+        
+        if re.fullmatch("[ATCG]+", input_sequence.upper()) is not None:
             self._sequence = input_sequence.upper()
         else:
-            raise SequenceException('DNA sequences can only contain ATCG.')
+            raise SequenceException("DNA sequences can only contain ATCG.")
 
     @property
-    def strand(self):
+    def strand(self) -> int:
+        """Retrieves the strand orientation for the sequence of this DNA object
+
+        Returns:
+            int: 1 for sense, -1 for antisense
+        """
         return self._strand
 
     @strand.setter
-    def strand(self, strand_int):
-        """
-        Strand can take values {-1, 1}
+    def strand(self, strand_int: int) -> None:
+        """Assigns a value to indicate strand orientation for the sequence of 
+        this DNA object
+
+        Args:
+            strand_int (int): 1 for sense, -1 for antisense
+
+        Raises:
+            Exception: Error when a value other than 1 or -1 is assigned
         """
         if strand_int in [1, -1]:
             self._strand = strand_int
@@ -77,21 +115,53 @@ class DNA(object):
             raise Exception('strand attribute can only take the values {-1, 1}')
 
     # --- Methods --- #
+    # should this become property?
+    def complement(self) -> str:
+        """Generate the complement to the sequence of this DNA object
 
-    def complement(self):
+        Returns:
+            str: complement to the sequence of this DNA object
         """
-        Generate the complement to the DNA sequence
-        :return:
+
+        """
+        Pulling code out of list comprehension:
+
+        complement_seq = ""
+
+        for base in self.sequence:
+            if base.upper() in self.dna_basepairs.keys():
+                complement_seq += self.dna_basepairs.get(base.upper())
+            else:
+                complement_seq += base
+        
+        return complement_seq
         """
         return ''.join([self.dna_basepairs.get(base.upper()) if base.upper() in self.dna_basepairs.keys() else base for base in self.sequence])
 
-    def reverse_complement(self):
+    # could potentially make this algorithm more effecient
+    def reverse_complement(self) -> str:
+        """Generate the reverse complement to the sequence of this DNA object
+
+        Returns:
+            str: reverse complement to the sequence of this DNA object
         """
-        Generate the reverse complement to the DNA sequence
-        :return:
+
+        """
+        More effecient approach outlined below. Time complexity reduced from O(n^2) to O(n)
+
+        rev_complement_seq = ""
+
+        for base in self.sequence:
+            if base.upper() in self.dna_basepairs.keys():
+                rev_complement_seq = self.dna_basepairs.get(base.upper()) + rev_complement_seq
+            else:
+                rev_complement_seq = base + rev_complement_seq
+        
+        return rev_complement_seq
         """
         return self.complement()[::-1]
 
+    # why is this empty?
     def translate(self):
         """
         Translate DNA sequence into protein
@@ -99,7 +169,8 @@ class DNA(object):
         """
         pass
 
-    def map_features(self):
+    # incorrectly states in docstring and returns feature map
+    def map_features(self) -> None:
         """
         Maps seqeunce features onto the DNA sequence
         :return: {(start, end): feature}
@@ -122,7 +193,8 @@ class DNA(object):
 
         self.feature_map = feature_dict
 
-    def find_cut_indicies(self, cut_position, rxn_enzyme):
+    # make tuple typing more specific
+    def find_cut_indicies(self, cut_position, rxn_enzyme) -> Tuple:
         """
         Finds the cut indicies for a rxn_enzyme found at cut_position on sequence
         :param cut_position: cut position index
@@ -162,8 +234,10 @@ class DNA(object):
 
 
 class SequenceException(Exception):
+    """Custom exception for sequence concent errors"""
     pass
 
 
 class RestrictionSiteException(Exception):
+    """Custom exception for restriction site location errors"""
     pass
