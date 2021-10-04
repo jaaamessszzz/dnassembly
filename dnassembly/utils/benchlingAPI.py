@@ -3,22 +3,25 @@ import json
 import os
 
 #baseURL = "https://outpacebiotest.benchling.com/api/" #testURL
-baseURL = "https://outpacebio.benchling.com/api/" #realURL
+#baseURL = "https://outpacebio.benchling.com/api/" #realURL
+baseURL = os.environ.get('BENCHLING_URL')
+
+apiVersion = os.environ.get('BENCHLING_API_VERSION')
 
 #key = #testkey
-key =  os.environ.get('Benchling_API_Key') #realkey
+key =  os.environ.get('BENCHLING_API_KEY') #realkey
 
 #Define the common parameters for new DNA plasmid sequences
 newSeq = {}
 newSeq["isCircular"] = True
-newSeq["namingStrategy"] = "NEW_IDS"
+newSeq["namingStrategy"] = os.environ.get('SEQ_NAMING_STRAT')
 
 #Real Registry
-newSeq["registryId"] = "src_oh4knSj0" #Outpace Registry
-newSeq["schemaId"] = "ts_itQ9daT4" #ID code for Plasmid
-project = {"value": ["sfso_uEaQhrCf"]} #MoClo Project
-carb = "sfso_Ro0lWOzU" #Real
-kan = "sfso_3vpWtjgu" #Real
+newSeq["registryId"] = os.environ.get('SEQ_REGISTRY_ID') #Outpace Registry
+newSeq["schemaId"] = os.environ.get('SEQ_SCHEMA_ID') #ID code for Plasmid
+project = {"value": [os.environ.get('BENCHLING_PROJ_ID')]} #MoClo Project
+carb = os.environ.get('CARB') #Real
+kan = os.environ.get('KAN') #Real
 
 #Test Registry
 #newSeq["folderId"] = "lib_1A6kl8LI" #Test, does this value change for each folder within a project?
@@ -29,18 +32,21 @@ kan = "sfso_3vpWtjgu" #Real
 #Define the common parameters for new DNA Parts
 newPart = {}
 newPart["isCircular"] = False
-newPart["namingStrategy"] = "NEW_IDS"
+newPart["namingStrategy"] = os.environ.get('PART_NAMING_STRAT')
 
 #Real Registry
-newPart["registryId"] = "src_oh4knSj0" #Outpace Registry
-newPart["schemaId"] = "ts_2XTP42dt" #ID code for DNA Part
+newPart["registryId"] = os.environ.get('PART_REGISTRY_ID') #Outpace Registry
+newPart["schemaId"] = os.environ.get('PART_SCHEMA_ID') #ID code for DNA Part
+
+#TODO - populate with test registry
+#newPart["registryId"] = "" #Outpace Registry
+#newPart["schemaId"] = "" #ID code for DNA Part
 
 class BadRequestException(Exception):
-    def __init__(self, message, rv):
-        super(BadRequestException, self).__init__(message)
-        self.rv = rv
+    pass
 
 def getBenchling(path, query):
+    #request = f"{baseURL}{apiVersion}/{path}{query}"
     request = baseURL+'v2/'+path+query
     r = requests.get(request, auth=(key,"")) #real version
 
@@ -48,13 +54,13 @@ def getBenchling(path, query):
         raise BadRequestException(
             "Server returned status {}. Response:\n{}".format(
                 r.status_code, json.dumps(r.json())
-            ),
-            r,
+            )
         )
 
     return r.json()
 
 def postSeqBenchling(bases, name, assembly_type, assembledFrom='', assembledFromID=''):
+    #request = f"{baseURL}{apiVersion}/dna-sequences"
     request = baseURL+'v2/dna-sequences'
 
     newSeq["bases"] = bases
@@ -117,13 +123,13 @@ def postSeqBenchling(bases, name, assembly_type, assembledFrom='', assembledFrom
         raise BadRequestException(
             "Server returned status {}. Response:\n{}".format(
                 r.status_code, json.dumps(r.json())
-            ),
-            r,
+            )
         )
 
     return r.json()
 
 def postPartBenchling(bases, name, partType):
+    #request = f"{baseURL}{apiVersion}/dna-sequences"
     request = baseURL+'v2/dna-sequences'
 
     newPart["bases"] = bases
@@ -156,13 +162,13 @@ def postPartBenchling(bases, name, partType):
         raise BadRequestException(
             "Server returned status {}. Response:\n{}".format(
                 r.status_code, json.dumps(r.json())
-            ),
-            r,
+            )
         )
 
     return r.json()
 
 def searchSeqBenchling(bases):
+    #request = f"{baseURL}{apiVersion}-beta/dna-sequences:search-bases"
     request = baseURL+'v2-beta/dna-sequences:search-bases'
     query = {"bases": bases,
         "registryId": "src_oh4knSj0", #real
@@ -178,14 +184,14 @@ def searchSeqBenchling(bases):
         raise BadRequestException(
             "Server returned status {}. Response:\n{}".format(
                 r.status_code, json.dumps(r.json())
-            ),
-            r,
+            )
         )
 
     templates = r.json()
     return templates['dnaSequences']
 
 def annotatePartBenchling(seqIDs):
+    #request = f"{baseURL}{apiVersion}/dna-sequences:autofill-parts"
     request = baseURL+'v2/dna-sequences:autofill-parts'
 
     annotateList = {"dnaSequenceIds": seqIDs}
@@ -195,7 +201,6 @@ def annotatePartBenchling(seqIDs):
         raise BadRequestException(
             "Server returned status {}. Response:\n{}".format(
                 r.status_code, json.dumps(r.json())
-            ),
-            r,
+            )
         )
     return

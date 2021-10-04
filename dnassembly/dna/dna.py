@@ -40,7 +40,7 @@ class DNA(object):
         self.features = features
         self.description = description
         self.source = source
-        self.feature_map = None  # Populated by map_features method
+        self.feature_map = None  # {(start, end): feature}; Populated by map_features method 
 
     def __repr__(self) -> str:
         """Retrieves a string representation of this DNA object
@@ -161,8 +161,10 @@ class DNA(object):
     # incorrectly states in docstring and returns feature map
     def map_features(self) -> None:
         """
-        Maps seqeunce features onto the DNA sequence
-        :return: {(start, end): feature}
+        Maps seqeunce features onto the DNA sequence and sets feature map attribute
+        as follows: {(start, end): feature}
+
+        :return: None
         """
         feature_dict = dict()
 

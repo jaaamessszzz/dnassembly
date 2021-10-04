@@ -35,9 +35,9 @@ from ..cloning import StickyEndAssembly
 #from siteinfo import *
 
 #Define static variables
-gBlockMaxSize = 3000
+gBlockMaxSize = 3000 # make an attribute of ggpart class (be able to update to 900)
 PCAMaxSize = 800
-gBlockMinSize = 125
+gBlockMinSize = 125 # make an attribute of ggpart class
 oligoAssemblySize = 125
 annealingLength = 20
 oligoTM = 48

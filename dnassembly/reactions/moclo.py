@@ -28,11 +28,13 @@ class CircularOrder(object):
     Base class for circular double linked list
     """
     def __init__(self):
+        """Default constructor for this CircularOrder class"""
         self.head = None
         self.size = 0
         self.assemblelinkedlist()
 
     def add(self, part):
+        
         new_part = PartNode(part)
 
         if self.head is None:
@@ -49,6 +51,7 @@ class CircularOrder(object):
 
         self.size += 1
 
+    # TODO - 
     def assemblelinkedlist(self):
         for part in self.parts:
             self.add(part)
@@ -59,36 +62,41 @@ class PartOrder(CircularOrder):
     Part plasmid annotation
     """
 
-    bbsi_annotation_f = {'TCAA': '1',
-                         'ACGA': '2a',
-                         'AACG': '2b',
-                         'CACC': '3a',
-                         'TTCT': '3b',
-                         'AGCA': '3c',
-                         'AGGC': '3d',
-                         'TCCA': '3e',
-                         'ATCC': '4a',
-                         'GTAA': '4b',
-                         'GCTA': '5',
-                         'ACTC': '6',
-                         'ATTG': '7'
-                         }
+    bbsi_annotation_f = {
+        'TCAA': '1',
+        'ACGA': '2a',
+        'AACG': '2b',
+        'CACC': '3a',
+        'TTCT': '3b',
+        'AGCA': '3c',
+        'AGGC': '3d',
+        'TCCA': '3e',
+        'ATCC': '4a',
+        'GTAA': '4b',
+        'GCTA': '5',
+        'ACTC': '6',
+        'ATTG': '7'
+    }
 
-    bbsi_annotation_r = {'ACGA': '1',
-                         'AACG': '2a',
-                         'CACC': '2b',
-                         'TTCT': '3a',
-                         'AGCA': '3b',
-                         'AGGC': '3c',
-                         'TCCA': '3d',
-                         'ATCC': '3e',
-                         'GTAA': '4a',
-                         'GCTA': '4b',
-                         'ACTC': '5',
-                         'ATTG': '6',
-                         'TCAA': '7'
-                         }
+    bbsi_annotation_r = {
+        'ACGA': '1',
+        'AACG': '2a',
+        'CACC': '2b',
+        'TTCT': '3a',
+        'AGCA': '3b',
+        'AGGC': '3c',
+        'TCCA': '3d',
+        'ATCC': '3e',
+        'GTAA': '4a',
+        'GCTA': '4b',
+        'ACTC': '5',
+        'ATTG': '6',
+        'TCAA': '7'
+    }
 
+    # TODO - refactor this since list comprehension is not easy to read
+    # TODO - what is the purpose of bbsi_annotation_f vs bbsi_annotation_r? is this just forward vs reverse?
+    # TODO - 
     parts = [part for part in bbsi_annotation_f.values()]
 
     def __init__(self):
@@ -100,20 +108,23 @@ class CassetteOrder(CircularOrder):
     Cassette plasmid annotation
     """
 
-    bsmbi_annotation_f = {'ACTC': 'LS-1',
-                          'TTCT': '1-2',
-                          'TCCA': '2-3',
-                          'ATCC': '3-RE',
-                          'ACAG': 'RE-LS'
-                          }
+    bsmbi_annotation_f = {
+        'ACTC': 'LS-1',
+        'TTCT': '1-2',
+        'TCCA': '2-3',
+        'ATCC': '3-RE',
+        'ACAG': 'RE-LS'
+    }
 
-    bsmbi_annotation_r = {'TTCT': 'LS-1',
-                          'TCCA': '1-2',
-                          'ATCC': '2-3',
-                          'ACAG': '3-RE',
-                          'ACTC': 'RE-LS'
-                          }
+    bsmbi_annotation_r = {
+        'TTCT': 'LS-1',
+        'TCCA': '1-2',
+        'ATCC': '2-3',
+        'ACAG': '3-RE',
+        'ACTC': 'RE-LS'
+    }
 
+    # TODO - refactor this since list comprehension is not easy to read
     parts = [part for part in bsmbi_annotation_f.values()]
 
     def __init__(self):
@@ -125,6 +136,9 @@ class MoCloAssemblyType(Enum):
     CASSETTE = BbsI
     MULTICASSETTE = BsmBI
 
+class MoCloAnnotationType(Enum):
+    PART = 'part'
+    CASSETTE = 'cassette'
 
 # --- MoClo Cloning Function --- #
 
@@ -176,17 +190,19 @@ def MoCloPartFromSequence(sequence, part_5, part_3, description=None, standardiz
             raise Exception('Part 3 coding sequence definitions must be in frame!')
 
     # Additional bases are appended to CDS to generate GS, SG or SS linkers
-    standardize_5 = {'3a': 'GC',
-                     '3b': 'GG',
-                     '3d': 'TC',
-                     '4a': 'GG',
-                     '4b': 'TA'
-                    }
+    standardize_5 = {
+        '3a': 'GC',
+        '3b': 'GG',
+        '3d': 'TC',
+        '4a': 'GG',
+        '4b': 'TA'
+    }
 
-    standardize_3 = {'3c': 'GT',
-                     '3e': 'GT',
-                     '4b': 'TAA'
-                     }
+    standardize_3 = {
+        '3c': 'GT',
+        '3e': 'GT',
+        '4b': 'TAA'
+    }
 
     # Add part overhangs
     overhang_5 = {v:k for k,v in PartOrder.bbsi_annotation_f.items()}
