@@ -1,12 +1,13 @@
 #! /usr/bin/env python3
 
 from Bio import SeqIO
+from ..dna import Plasmid
 
 from ..utils.conversion import convert_dnassembly_to_biopython, convert_biopython_to_dnassembly
 
 # --- Read files --- #
 
-def read_genbank(file_path, output_format):
+def read_genbank(file_path: str, output_format):
     """
     Parse a GenBank (.gb) file and return a DNA entity. This function assumes that a single GenBank file corresponds to
     one DNA sequence/entity.
@@ -22,7 +23,7 @@ def read_genbank(file_path, output_format):
 
 # --- Write files --- #
 
-def write_genbank(ipnut_dna, output='new_assembly.gb', to_stream=True):
+def write_genbank(ipnut_dna: Plasmid, output: str = 'new_assembly.gb', to_stream: bool = True) -> None:
     """
     Output a plasmid in the GenBank file format (.gb)
     :param ipnut_dna: DNA entity

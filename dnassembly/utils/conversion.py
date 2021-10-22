@@ -9,7 +9,6 @@ from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation
 from ..dna import Plasmid, Feature
 from ..utils import pairwise, reverse_complement
 
-
 def convert_biopython_to_dnassembly(parsed_genbank, output_format):
     """
     Convert a BioPython SeqRecord into a DNAssembly DNA entity
@@ -101,92 +100,7 @@ def convert_biopython_to_dnassembly(parsed_genbank, output_format):
 
     return dna_entity
 
-def convert_benchling_to_dnassembly(parsed_Benchling, output_format):
-    """
-    Convert a Benchling Sequence into a DNAssembly DNA entity
-    :param benchlingSeq: JSON from Benchling API
-    :param output_format: OutputFormat object for your desired output format
-    :return:
-    """
-
-    dna_sequence = parsed_Benchling['bases']
-
-    # Pull any features out of benchling and stick them into Feature class instances
-    # Biopython SeqFeature objects only hold feature indicies, which will get lost during an assembly
-    '''
-    feature_list = list()
-    feature_sequence_set = set()
-
-    for feature in parsed_Benchling['annotations']:
-
-        # Get feature sequence
-        if isinstance(feature.location, FeatureLocation):
-            feature_sequence = dna_sequence[feature.location.start:feature.location.end]
-
-        # If CompoundLocation, convert feature into regex (e.g. GGTCTC.TATG for a BsaI site + sticky end)
-        elif isinstance(feature.location, CompoundLocation):
-            feature_parts = feature.location.parts
-            indices = sorted([(feature_part.start, feature_part.end) for feature_part in feature_parts])
-
-            # Start with first feature part in feature_sequence
-            first_feature_indicies = indices[0]
-            feature_sequence = dna_sequence[first_feature_indicies[0]:first_feature_indicies[1]]
-
-            # Add . for nucleotides between features, then add next feature part
-            for first_part, second_part in pairwise(indices):
-                space_between_features = second_part[0] - first_part[1]
-                feature_sequence += '.' * space_between_features
-                feature_sequence += dna_sequence[second_part[0]:second_part[1]]
-
-        else:
-            print(
-                'Only features compatible with BioPython FeatureLocation or CompoundLocation objects are currently supported...')
-            continue
-
-        # todo: move all this to alternate Feature constructor that accepts a sequence and BioPython Feature
-        feature_type = feature.type
-        strand = feature.location.strand
-
-        # get reverse complement of feature sequence if strand == -1
-        if strand == -1:
-            feature_sequence = reverse_complement(feature_sequence)
-
-        # Get feature name... what the difference between locus tag and label is...
-        feature_label_keys = list({'label', 'locus_tag'} & set(feature.qualifiers.keys()))
-
-        if len(feature_label_keys) == 0:
-            feature_name = 'Undefined Feature'
-        else:
-            feature_name = feature.qualifiers.get(feature_label_keys[0])[0]
-
-        # Get feature colors
-        forward_color = feature.qualifiers.get('ApEinfo_fwdcolor')[0] if feature.qualifiers.get(
-            'ApEinfo_fwdcolor') else None
-        reverse_color = feature.qualifiers.get('ApEinfo_revcolor')[0] if feature.qualifiers.get(
-            'ApEinfo_revcolor') else None
-
-        # Make Feature
-        parsed_feature = Feature(feature_sequence, feature_type, strand, entity_id=feature_name, name=feature_name,
-                                 forward_color=forward_color, reverse_color=reverse_color)
-
-        # Add feature to feature_list if feature has not already been encountered
-        if len(feature_sequence_set & {parsed_feature.reverse_complement(), parsed_feature.sequence}) == 0:
-            feature_list.append(parsed_feature)
-            feature_sequence_set.add(feature_sequence)
-        '''
-
-    # Convert BioPython Seq into whatever is defined in output_format
-    dna_entity = output_format.value(
-        dna_sequence,
-        #entity_id=parsed_genbank.id,
-        name=parsed_genbank['name'],
-        description=parsed_genbank['entityRegistryId'],
-        benchlingID = parsed_genbank['id'],
-        #features=feature_list
-    )
-    return dna_entity
-
-def convert_dnassembly_to_biopython(dna_entity):
+def convert_dnassembly_to_biopython(dna_entity: Plasmid):
     """
     Convert a DNAssembly DNA entity into a BioPython SeqRecord
     :param dna_entity: DNAssembly DNA entity
