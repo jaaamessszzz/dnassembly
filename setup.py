@@ -1,22 +1,32 @@
-#!/usr/bin/env python3
-# encoding: utf-8
-
 try:
     from setuptools import setup, find_packages
+    import os.path
 except ImportError:
     from distutils.core import setup, find_packages
 
-with open('README.md') as file:
-    readme = file.read()
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+PKG_DIR = "dnassembly"
+
+version = {}
+
+with open("README.md", "r") as f:
+    long_description = f.read()
+
+with open("requirements.txt", "r") as f:
+    REQUIRED = f.readlines()
+
+with open(os.path.join(BASE_DIR, PKG_DIR, "version.py")) as version_file:
+    exec(version_file.read(), version)
 
 # Setup
 setup(
     name='dnassembly',
-    version='0.2.1',
+    version=version['__version__'],
     author='James Lucas',
     author_email='james.lucas@berkeley.edu',
     description='Digest and assemble DNA',
-    long_description=readme,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     url='https://github.com/outpace-bio/dnassembly',
     keywords=[
         'DNA',
@@ -35,14 +45,8 @@ setup(
         'Programming Language :: Python :: 3',
     ],
     packages=find_packages(),
-    install_requires=[
-        'networkx',
-        'biopython'
-    ],
-    entry_points={
-        'console_scripts': [
-        ],
-    },
+    install_requires=REQUIRED,
+    python_requires=">=3.7",
     include_package_data=True,
     zip_safe=False,
 )
