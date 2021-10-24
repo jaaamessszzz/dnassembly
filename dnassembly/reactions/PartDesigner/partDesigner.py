@@ -34,10 +34,11 @@ from ..cloning import StickyEndAssembly
 #sys.path.append('../../../main')
 #from siteinfo import *
 
-#Define static variables
-gBlockMaxSize = 3000 # make an attribute of ggpart class (be able to update to 900)
+# Define static variables
+gBlockMaxSize = 3000  # make an attribute of ggpart class (be able to update to 900)
+eBlockMaxSize = 900
 PCAMaxSize = 800
-gBlockMinSize = 125 # make an attribute of ggpart class
+gBlockMinSize = 125  # make an attribute of ggpart class
 oligoAssemblySize = 125
 annealingLength = 20
 oligoTM = 48
@@ -319,13 +320,15 @@ class GGpart():
 		forced_method = ""
 		if self.method == "gBlocks":
 			allowableSize = gBlockMaxSize - 24
+		elif self.method == "eBlocks":
+			allowableSize = eBlockMaxSize - 24
 		elif self.method == "Oligo Assembly":
 			allowableSize = gBlockMinSize - 3
 		elif self.method == "PCA":
 			allowableSize = PCAMaxSize - 24
 
 		# Divide the initialized GGfrag into chunks based on assembly method
-		if self.method in ["gBlocks", "Oligo Assembly", "PCA"]:
+		if self.method in ["eBlocks", "gBlocks", "Oligo Assembly", "PCA"]:
 			self.GGfrags[0].forced_method = self.method
 			self.GGfrags = divideBySize(self.GGfrags[0], allowableSize)
 		else:
@@ -463,12 +466,14 @@ class GGpart():
 		allowableSize = 0
 		if self.method == "gBlocks":
 			allowableSize = gBlockMaxSize - 22
+		elif self.method == "eBlocks":
+			allowableSize = eBlockMaxSize - 22
 		elif self.method == "Oligo Assembly":
 			allowableSize = gBlockMinSize
 
 		#Find possible overhangs at each junction
 		possOHs = []
-		if self.method in ["gBlocks", "Oligo Assembly"]:
+		if self.method in ["eBlocks", "gBlocks", "Oligo Assembly"]:
 			possOHs = findPossOH_byFragLength(self.GGfrags, allowableSize, annealingLength)
 		else:
 			possOHs = findPossOH_byPrimerLength(self.GGfrags, self.maxPrimerLength - 11, annealingLength, gBlockMaxSize, self.enzyme)
@@ -562,6 +567,9 @@ class GGpart():
 			if each.forced_method == "gBlocks":
 				primers.append(['',''])
 				methods.append("gBlocks")
+			elif each.forced_method == "eBlocks":
+				primers.append(['',''])
+				methods.append("eBlocks")
 			elif each.forced_method == "Oligo Assembly":
 				primers.append(getOligoAssemPrimers(each, self.maxPrimerLength))
 				methods.append("Oligo Assembly")
